@@ -21,14 +21,14 @@ REQUIRES_PYTHON = ">=3.12.0"
 VERSION = "0.1.0"
 
 INSTALL_REQUIRES = [
-    "bech32==1.2.0",
-    "bip-utils==2.3.0",
-    "pynacl==1.5.0",
-    "eth-abi==5.1.0",
-    "eth-utils==5.0.0",
-    "mnemonic==0.20",
-    "websockets==10.3",
-    "argon2-cffi==23.1.0",
+    "bech32>=1.2,<2",
+    "bip-utils>=2.3,<3",
+    "pynacl>=1.5,<2",
+    "eth-abi>=5.1,<6",
+    "eth-utils>=5,<6",
+    "mnemonic>=0.20,<1",
+    "websockets>=10,<11",
+    "argon2-cffi>=23.1,<26",
     "pycryptodome>=3.20.0,<4",
 ]
 

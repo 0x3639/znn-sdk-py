@@ -40,8 +40,8 @@ class KeyStore:
     @staticmethod
     def from_entropy(entropy: str | bytes, passphrase: str = ""):
         raw = bytes.fromhex(entropy) if isinstance(entropy, str) else bytes(entropy)
-        if len(raw) not in {16, 20, 24, 28, 32}:
-            raise ValueError("BIP39 entropy must contain 128 to 256 bits in 32-bit steps")
+        if len(raw) not in {16, 32}:
+            raise ValueError("SDK entropy import requires exactly 16 or 32 bytes")
         mnemonic = Mnemonic("english").to_mnemonic(raw)
         return KeyStore(mnemonic, passphrase)
 

@@ -67,8 +67,9 @@ def _encode_value(type_name: str, value: Any) -> Any:
             return value.core
         if isinstance(value, str):
             return Hash.parse(value.removeprefix("0x")).core
-        raw = bytes(value)
-        return Hash(raw).core
+        if isinstance(value, (bytes, bytearray)):
+            return Hash(bytes(value)).core
+        raise ABIError("hash requires a Hash, hexadecimal string, or 32-byte value")
     if type_name == "tokenStandard":
         core = bytes(value) if isinstance(value, TokenStandard) else bytes(TokenStandard.parse(value))
         return int.from_bytes(core, "big")
@@ -124,9 +125,11 @@ class ABI:
         signature = get_function_signature(fn_name, inputs)
         selector = Hash.digest(signature.encode()).core[:4]
         types = [item["type"] for item in inputs]
-        values = [_encode_value(t, v) for t, v in zip(types, fn_params, strict=True)]
         try:
+            values = [_encode_value(t, v) for t, v in zip(types, fn_params, strict=True)]
             return selector + eth_encode([_eth_type(item) for item in types], values)
+        except ABIError:
+            raise
         except Exception as error:
             raise ABIError(str(error)) from error
 
@@ -139,10 +142,15 @@ class ABI:
             values = eth_decode([_eth_type(item) for item in types], data[4:], strict=True)
         except Exception as error:
             raise ABIError(str(error)) from error
-        return {
-            item["name"]: _decode_value(item["type"], value)
-            for item, value in zip(inputs, values, strict=True)
-        }
+        try:
+            return {
+                item["name"]: _decode_value(item["type"], value)
+                for item, value in zip(inputs, values, strict=True)
+            }
+        except ABIError:
+            raise
+        except Exception as error:
+            raise ABIError(str(error)) from error
 
     def decode_call_data(self, data: bytes) -> tuple[str, dict[str, Any]]:
         selector = data[:4]

@@ -80,4 +80,18 @@ def test_prepare_sign_publish_send_receive_and_contract_offline():
         with pytest.raises(TransactionError, match="requires an 8-byte nonce"):
             await pow_tx.prepare_block(invalid_preselected)
 
+        too_easy = AccountBlock.send(Address.from_core(bytes([6]) * 20), ZNN_ZTS, 1)
+        too_easy.difficulty = 1
+        too_easy.nonce = bytes(8)
+        with pytest.raises(TransactionError, match="below the node-required"):
+            await pow_tx.prepare_block(too_easy)
+
+        malformed_provider = Transact(
+            PRIVATE_KEY, FakeLedger(), FakePlasma(2), lambda _hash, _difficulty: "not-hex"
+        )
+        with pytest.raises(TransactionError, match="non-hexadecimal"):
+            await malformed_provider.prepare_block(
+                AccountBlock.send(Address.from_core(bytes([7]) * 20), ZNN_ZTS, 1)
+            )
+
     asyncio.run(scenario())

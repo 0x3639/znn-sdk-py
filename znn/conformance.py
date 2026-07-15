@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
+import importlib.util
 import inspect
 import json
 import re
 from pathlib import Path
 from typing import Any
 
-from znn.abi import ABI
+from znn.abi import ABI, ABIError
 from znn.amount import from_base_units, to_base_units
+from znn.api.ledger import LedgerApi
 from znn.api.embedded.accelerator import AcceleratorApi
 from znn.api.embedded.bridge import BridgeApi
 from znn.api.embedded.htlc import HtlcApi
@@ -23,13 +26,15 @@ from znn.api.embedded.stake import StakeApi
 from znn.api.embedded.swap import SwapApi
 from znn.api.embedded.token import TokenApi
 from znn.client.errors import JsonRpcError
+from znn.client.http import HttpClient
 from znn.client.protocol import build_request, normalize_notification, rpc_error, subscription_params
+from znn.client.websocket import WsClient
 from znn.embedded.definitions import (
     ACCELERATOR_ABI, BRIDGE_ABI, COMMON_ABI, HTLC_ABI, LIQUIDITY_ABI,
     PILLAR_ABI, PLASMA_ABI, SENTINEL_ABI, SPORK_ABI, STAKE_ABI,
     SWAP_ABI, TOKEN_ABI,
 )
-from znn.model.models import MODEL_TYPES, Model
+from znn.model.models import wire_model_round_trip
 from znn.model.nom.account_block import AccountBlock
 from znn.model.primitives.address import Address
 from znn.model.primitives.hash import Hash
@@ -97,7 +102,7 @@ def _abi_case(case):
             try:
                 abi.encode("Probe", values)
                 return False
-            except Exception:
+            except ABIError:
                 return True
         return f"0x{abi.encode('Probe', values)[4:].hex()}"
     data = bytes.fromhex(inputs["data"].removeprefix("0x"))
@@ -105,7 +110,7 @@ def _abi_case(case):
         try:
             abi.decode("Probe", bytes(4) + data)
             return False
-        except Exception:
+        except ABIError:
             return True
     decoded = abi.decode("Probe", bytes(4) + data)
     values = [_output(t, decoded[f"value{i}"]) for i, t in enumerate(types)]
@@ -158,7 +163,7 @@ def _builder_case(case):
             "dataHex": block.data.hex()}
 
 
-def dispatch(case):
+def dispatch(case, transport_results=None):
     op, value = case["operation"], case["input"]
     if op.startswith("abi."):
         return _abi_case(case)
@@ -185,8 +190,7 @@ def dispatch(case):
         return {"mnemonic": store.mnemonic,
                 "addresses": [str(store.get_key_pair(index).address) for index in value["indices"]]}
     if op == "model.wire":
-        cls = MODEL_TYPES.get(value["model"], Model)
-        return cls.from_json(value["json"]).to_json()
+        return wire_model_round_trip(value["model"], value["json"])
     if op == "embedded.encode":
         name, raw_types = value["function"].split("(", 1)
         types = [] if not raw_types[:-1] else raw_types[:-1].split(",")
@@ -212,32 +216,87 @@ def dispatch(case):
         return normalize_notification(value)
     if op == "transport.error":
         return rpc_error(value["error"], value["method"], value["params"]).to_json()
-    if op == "transport.publish-null":
-        return None
-    if op == "transport.pagination-error":
-        if int(value["params"][-1]) > 1024:
-            return {"code": -32000, "message": "page-size parameter is too big"}
-        raise ValueError("pagination input did not exceed the limit")
-    if op == "transport.reconnect":
-        # Deterministic transcript normalization after resubscribe.
-        params = value["params"]
-        if params[0] != "accountBlocksByAddress":
-            raise ValueError("unsupported reconnect transcript")
-        event = normalize_notification({"method": "ledger.subscription", "params": {
-            "subscription": "sub-1", "result": [{"height": 42}]
-        }})
-        return {"subscription": event["subscriptionId"], "updateHeight": event["updates"][0]["height"]}
+    if op in {"transport.publish-null", "transport.pagination-error", "transport.reconnect"}:
+        if transport_results is None or op not in transport_results:
+            raise RuntimeError("live transport conformance fixture was not executed")
+        result = transport_results[op]
+        if isinstance(result, Exception):
+            raise result
+        return result
     raise NotImplementedError(op)
+
+
+def _load_transport_fixture(vectors: Path):
+    path = vectors.parent.parent / "tools" / "transport_fixture.py"
+    if not path.is_file():
+        raise FileNotFoundError(f"transport fixture not found at {path}")
+    module_spec = importlib.util.spec_from_file_location("znn_spec_transport_fixture", path)
+    if module_spec is None or module_spec.loader is None:
+        raise ImportError(f"cannot load transport fixture from {path}")
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    return module
+
+
+async def _exercise_transport(vectors: Path):
+    fixture_module = _load_transport_fixture(vectors)
+    fixture = fixture_module.TransportFixture()
+    fixture.start()
+    websocket = None
+    try:
+        http = HttpClient(fixture.http_url)
+        ledger = LedgerApi(http)
+        publish_result = await ledger.publish_raw_transaction(AccountBlock())
+        try:
+            await ledger.get_account_blocks_by_page(fixture_module.ADDRESS, 0, 1025)
+        except JsonRpcError as error:
+            pagination_result = {"code": error.code, "message": error.message}
+        else:
+            raise RuntimeError("oversized pagination request unexpectedly succeeded")
+
+        websocket = WsClient(
+            fixture.websocket_url, reconnect_interval=0.01, maximum_attempts=3
+        )
+        subscription = await websocket.subscribe(
+            "accountBlocksByAddress", fixture_module.ADDRESS
+        )
+        await asyncio.wait_for(subscription.__anext__(), 2)
+        update = await asyncio.wait_for(subscription.__anext__(), 2)
+        reconnect_result = {
+            "subscription": subscription.id,
+            "updateHeight": update["height"],
+        }
+        return {
+            "transport.publish-null": publish_result,
+            "transport.pagination-error": pagination_result,
+            "transport.reconnect": reconnect_result,
+        }
+    finally:
+        if websocket is not None:
+            await websocket.disconnect()
+        fixture.close()
 
 
 def run(vectors: Path):
     cases = []
     for path in sorted(vectors.glob("*.json")):
         cases.extend(json.loads(path.read_text())["cases"])
+    transport_operations = {
+        "transport.publish-null", "transport.pagination-error", "transport.reconnect"
+    }
+    transport_results = None
+    if any(case["operation"] in transport_operations for case in cases):
+        try:
+            transport_results = asyncio.run(_exercise_transport(vectors))
+        except Exception as error:
+            transport_results = {operation: error for operation in transport_operations}
     results = []
     for case in cases:
         try:
-            results.append({"id": case["id"], "actual": dispatch(case)})
+            results.append({
+                "id": case["id"],
+                "actual": dispatch(case, transport_results=transport_results),
+            })
         except Exception as error:
             results.append({"id": case["id"], "error": f"{type(error).__name__}: {error}"})
     return {"format": "znn-sdk-results/1",

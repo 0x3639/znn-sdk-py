@@ -1,4 +1,5 @@
 import asyncio
+import os
 import sys
 from pathlib import Path
 
@@ -28,10 +29,15 @@ def test_transport_rejects_schemes_and_has_no_third_party_default():
     with pytest.raises(ValueError):
         WsClient("ftp://example.test")
     assert WsClient().url is None
+    with pytest.raises(ValueError, match="timeout"):
+        HttpClient("http://example.test", timeout=0)
+    with pytest.raises(ValueError, match="maximum_attempts"):
+        WsClient("ws://example.test", maximum_attempts=-1)
 
 
 def test_offline_http_websocket_transcript():
-    spec = Path(__file__).resolve().parents[2] / "znn-ts-sdk-spec"
+    configured = os.environ.get("ZNN_SPEC_ROOT")
+    spec = Path(configured) if configured else Path(__file__).resolve().parents[2] / "znn-ts-sdk-spec"
     if not spec.exists():
         pytest.skip("stable transport fixture is not available")
     sys.path.insert(0, str(spec / "tools"))
@@ -59,6 +65,8 @@ def test_offline_http_websocket_transcript():
             subscription = await websocket.subscribe("accountBlocksByAddress", ADDRESS)
             assert (await asyncio.wait_for(subscription.__anext__(), 2))["height"] == 42
             # The fixture closes each socket; the transport reconnects and resubscribes.
+            assert (await asyncio.wait_for(subscription.__anext__(), 2))["height"] == 42
+            # A close racing the active recovery must schedule the next recovery too.
             assert (await asyncio.wait_for(subscription.__anext__(), 2))["height"] == 42
             await websocket.disconnect()
         finally:

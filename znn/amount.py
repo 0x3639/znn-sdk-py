@@ -4,19 +4,26 @@ from decimal import Decimal, InvalidOperation, ROUND_DOWN, localcontext
 
 
 def to_base_units(amount: str | int | Decimal, decimals: int) -> int:
-    if not isinstance(decimals, int) or decimals < 0:
+    if not isinstance(decimals, int) or isinstance(decimals, bool) or decimals < 0:
         raise ValueError("decimals must be a non-negative integer")
+    if isinstance(amount, bool) or not isinstance(amount, (str, int, Decimal)):
+        raise TypeError("amount must be a decimal string, integer, or Decimal")
     try:
         with localcontext() as context:
             context.prec = max(80, len(str(amount)) + decimals + 4)
-            return int((Decimal(str(amount)) * (Decimal(10) ** decimals)).to_integral_value(rounding=ROUND_DOWN))
-    except InvalidOperation as error:
+            value = Decimal(str(amount))
+            if not value.is_finite():
+                raise ValueError("amount must be a finite decimal value")
+            return int((value * (Decimal(10) ** decimals)).to_integral_value(rounding=ROUND_DOWN))
+    except (InvalidOperation, OverflowError) as error:
         raise ValueError("amount must be a finite decimal value") from error
 
 
 def from_base_units(amount: str | int, decimals: int) -> str:
-    if not isinstance(decimals, int) or decimals < 0:
+    if not isinstance(decimals, int) or isinstance(decimals, bool) or decimals < 0:
         raise ValueError("decimals must be a non-negative integer")
+    if isinstance(amount, bool) or not isinstance(amount, (str, int)):
+        raise TypeError("amount must be an integer or integer string")
     value = int(amount)
     if decimals == 0:
         return str(value)

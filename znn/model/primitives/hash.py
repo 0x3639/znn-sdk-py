@@ -1,11 +1,12 @@
 import hashlib
-from copy import deepcopy
 
 
 class Hash:
     LENGTH = 32
 
     def __init__(self, core: bytes):
+        if not isinstance(core, (bytes, bytearray, memoryview)):
+            raise TypeError("Hash core must be bytes-like")
         core = bytes(core)
         if len(core) != self.LENGTH:
             raise ValueError(f"Hash core must be exactly {self.LENGTH} bytes")
@@ -40,14 +41,11 @@ class Hash:
 
     @staticmethod
     def from_json(value: dict) -> "Hash":
-        instance = Hash.__new__(Hash)
-        instance.core = deepcopy(value["core"])
-        instance._wire_json = deepcopy(value)
-        return instance
+        if not isinstance(value, dict):
+            raise TypeError("Hash JSON must be an object")
+        return Hash.parse(value.get("core"))
 
     def to_json(self) -> dict:
-        if hasattr(self, "_wire_json"):
-            return deepcopy(self._wire_json)
         return {"core": self.core.hex()}
 
     def __bytes__(self) -> bytes:

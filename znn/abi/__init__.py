@@ -1,1 +1,1 @@
-from .abi import ABI  # noqa
+from .abi import ABI, ABIError  # noqa: F401

@@ -1,4 +1,4 @@
-from znn.client.websocket import get_default_client
+from znn.api.client import get_api_client
 from znn.constants import RPC_MAX_PAGE_SIZE, MEMORY_POOL_PAGE_SIZE
 from znn.embedded.definitions import LIQUIDITY_ABI
 from znn.embedded.definitions import COMMON_ABI
@@ -14,7 +14,7 @@ def _data(value): return value if value is None or isinstance(value, bytes) else
 
 class LiquidityApi:
     def __init__(self, ws_client=None):
-        self.ws_client = ws_client if ws_client is not None else get_default_client()
+        self.ws_client = get_api_client(ws_client)
 
     async def get_frontier_reward_by_page(self, address: Address, page_index=0, page_size=RPC_MAX_PAGE_SIZE):
         return await self.ws_client.send_request("embedded.liquidity.getFrontierRewardByPage", [str(address), page_index, page_size])

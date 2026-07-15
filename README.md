@@ -47,7 +47,7 @@ integration, and deterministic offline tests.
 
 - strict Address, Hash, TokenStandard, and HashHeight primitives;
 - arbitrary-precision decimal-string wire amounts;
-- all 72 wire models and 6 enums;
+- all 72 field-aware wire models and 6 enums, with typed RPC results;
 - all 76 canonical positional JSON-RPC calls;
 - all 84 embedded ABI functions and 68 corrected builders;
 - strict ABI integer, boolean, fixed-byte, and custom-array behavior;
@@ -79,3 +79,5 @@ python3 /path/to/znn-ts-sdk-spec/tools/znn_spec.py \
 ```
 
 All conformance tests are deterministic and offline; no live node is required.
+The transport cases use the specification's localhost fixture and exercise the
+real HTTP/WebSocket clients, including reconnect and resubscription.

@@ -7,15 +7,31 @@ import secrets
 
 
 def _validate(hash_hex: str, difficulty: int, nonce_hex: str | None = None) -> bytes:
+    if (
+        not isinstance(hash_hex, str)
+        or len(hash_hex) != 64
+        or hash_hex != hash_hex.lower()
+    ):
+        raise ValueError("PoW hash must be 64 lowercase hexadecimal characters")
     try:
         data_hash = bytes.fromhex(hash_hex)
     except ValueError as error:
         raise ValueError("PoW hash must be hexadecimal") from error
     if len(data_hash) != 32:
         raise ValueError("PoW hash must be exactly 32 bytes")
-    if not isinstance(difficulty, int) or isinstance(difficulty, bool) or difficulty < 0:
-        raise ValueError("PoW difficulty must be a non-negative integer")
+    if (
+        not isinstance(difficulty, int)
+        or isinstance(difficulty, bool)
+        or not 0 <= difficulty <= (1 << 64) - 1
+    ):
+        raise ValueError("PoW difficulty must fit an unsigned 64-bit integer")
     if nonce_hex is not None:
+        if (
+            not isinstance(nonce_hex, str)
+            or len(nonce_hex) != 16
+            or nonce_hex != nonce_hex.lower()
+        ):
+            raise ValueError("PoW nonce must be 16 lowercase hexadecimal characters")
         try:
             nonce = bytes.fromhex(nonce_hex)
         except ValueError as error:
@@ -39,6 +55,10 @@ def generate(hash_hex: str, difficulty: int, start_nonce: bytes | None = None) -
     _validate(hash_hex, difficulty)
     if difficulty == 0:
         return "0000000000000000"
+    if start_nonce is not None and not isinstance(
+        start_nonce, (bytes, bytearray, memoryview)
+    ):
+        raise TypeError("PoW starting nonce must be bytes-like")
     nonce = secrets.token_bytes(8) if start_nonce is None else bytes(start_nonce)
     if len(nonce) != 8:
         raise ValueError("PoW starting nonce must be exactly 8 bytes")

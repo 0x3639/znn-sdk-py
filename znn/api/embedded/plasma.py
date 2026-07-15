@@ -1,7 +1,7 @@
 import base64
 import warnings
 
-from znn.client.websocket import get_default_client
+from znn.api.client import get_api_client
 from znn.constants import RPC_MAX_PAGE_SIZE
 from znn.embedded.definitions import PLASMA_ABI
 from znn.model.nom.account_block import AccountBlock
@@ -14,10 +14,7 @@ from znn.model.primitives.token_standard import ZNN_ZTS
 
 class PlasmaApi:
     def __init__(self, ws_client=None):
-        self.ws_client = ws_client
-
-        if self.ws_client is None:
-            self.ws_client = get_default_client()
+        self.ws_client = get_api_client(ws_client)
 
     def get_plasma_by_qsr(self, qsr_amount):
         return int(qsr_amount) * 2100

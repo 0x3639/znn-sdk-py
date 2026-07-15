@@ -12,6 +12,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: 0x3639/zenon-sdk-spec
+          ref: 69f2ecf955bafa4037c73f4b858619ef834e738b
           path: spec-kit
       - uses: actions/setup-python@v5
         with:
@@ -25,3 +26,4 @@ jobs:
           ZNN_SPEC_ROOT: ${{ github.workspace }}/spec-kit
       - run: python -m znn.conformance spec-kit/conformance/vectors --output znn-sdk-results.json
       - run: python spec-kit/tools/znn_spec.py check-results znn-sdk-results.json
+      - run: python spec-kit/tools/znn_spec.py check-manifest conformance/manifest.json

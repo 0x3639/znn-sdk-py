@@ -1,4 +1,4 @@
-from znn.client.websocket import get_default_client
+from znn.api.client import get_api_client
 from znn.constants import RPC_MAX_PAGE_SIZE
 from znn.constants import TOKEN_ISSUE_ZNN_FEE
 from znn.embedded.definitions import TOKEN_ABI
@@ -11,22 +11,25 @@ from znn.model.primitives.token_standard import ZNN_ZTS
 
 class TokenApi:
     def __init__(self, ws_client=None):
-        self.ws_client = ws_client
-
-        if self.ws_client is None:
-            self.ws_client = get_default_client()
+        self.ws_client = get_api_client(ws_client)
 
     async def get_all(self, page_index=0, page_size=RPC_MAX_PAGE_SIZE):
         return await self.ws_client.send_request(
             "embedded.token.getAll", [page_index, page_size],
         )
 
-    async def get_by_owner_address(
+    async def get_by_owner(
         self, address: Address, page_index=0, page_size=RPC_MAX_PAGE_SIZE
     ):
         return await self.ws_client.send_request(
             "embedded.token.getByOwner", [str(address), page_index, page_size],
         )
+
+    async def get_by_owner_address(
+        self, address: Address, page_index=0, page_size=RPC_MAX_PAGE_SIZE
+    ):
+        """Compatibility alias for :meth:`get_by_owner`."""
+        return await self.get_by_owner(address, page_index, page_size)
 
     async def get_by_zts(self, token_standard: TokenStandard):
         return await self.ws_client.send_request(

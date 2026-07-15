@@ -1,5 +1,4 @@
 import hashlib
-from copy import deepcopy
 
 import bech32
 
@@ -10,6 +9,8 @@ class Address:
     LENGTH = 20
 
     def __init__(self, hrp: str, core: bytes):
+        if not isinstance(core, (bytes, bytearray, memoryview)):
+            raise TypeError("Address core must be bytes-like")
         core = bytes(core)
         if hrp != HRP:
             raise ValueError(f"Address HRP must be {HRP!r}")
@@ -47,6 +48,8 @@ class Address:
 
     @staticmethod
     def from_public_key(public_key: bytes) -> "Address":
+        if not isinstance(public_key, (bytes, bytearray, memoryview)):
+            raise TypeError("Ed25519 public key must be bytes-like")
         return Address.from_public_key_hex(bytes(public_key).hex())
 
     @staticmethod
@@ -90,15 +93,20 @@ class Address:
 
     @staticmethod
     def from_json(value: dict) -> "Address":
-        instance = Address.__new__(Address)
-        instance.hrp = value["hrp"]
-        instance.core = deepcopy(value["core"])
-        instance._wire_json = deepcopy(value)
-        return instance
+        if not isinstance(value, dict):
+            raise TypeError("Address JSON must be an object")
+        core = value.get("core")
+        if not isinstance(core, str) or len(core) != Address.LENGTH * 2:
+            raise ValueError("Address JSON core must be exactly 40 hexadecimal characters")
+        if core != core.lower():
+            raise ValueError("Address JSON core must use lowercase hexadecimal characters")
+        try:
+            decoded = bytes.fromhex(core)
+        except ValueError as error:
+            raise ValueError("Address JSON core must contain only hexadecimal characters") from error
+        return Address(value.get("hrp"), decoded)
 
     def to_json(self) -> dict:
-        if hasattr(self, "_wire_json"):
-            return deepcopy(self._wire_json)
         return {"hrp": self.hrp, "core": self.core_to_hex.removeprefix("0x")}
 
     def to_bytes(self) -> bytes:
@@ -108,10 +116,10 @@ class Address:
         return self.to_bytes()
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, Address) and self.core == other.core
+        return isinstance(other, Address) and bytes(self.core) == bytes(other.core)
 
     def __hash__(self) -> int:
-        return hash(self.core)
+        return hash(bytes(self.core))
 
     @property
     def core_to_hex(self):

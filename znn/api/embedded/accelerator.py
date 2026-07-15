@@ -1,4 +1,4 @@
-from znn.client.websocket import get_default_client
+from znn.api.client import get_api_client
 from znn.constants import PROJECT_CREATION_FEE_ZNN
 from znn.constants import RPC_MAX_PAGE_SIZE
 from znn.embedded.definitions import ACCELERATOR_ABI
@@ -11,17 +11,16 @@ from znn.model.primitives.token_standard import ZNN_ZTS
 
 class AcceleratorApi:
     def __init__(self, ws_client=None):
-        self.ws_client = ws_client
+        self.ws_client = get_api_client(ws_client)
 
-        if self.ws_client is None:
-            self.ws_client = get_default_client()
-
-    async def get_account_blocks_by_page(
-        self, page_index=0, page_size=RPC_MAX_PAGE_SIZE
-    ):
+    async def get_all(self, page_index=0, page_size=RPC_MAX_PAGE_SIZE):
         return await self.ws_client.send_request(
             "embedded.accelerator.getAll", [page_index, page_size]
         )
+
+    async def get_account_blocks_by_page(self, page_index=0, page_size=RPC_MAX_PAGE_SIZE):
+        """Deprecated alias for the historically misnamed accelerator query."""
+        return await self.get_all(page_index, page_size)
 
     async def get_project_by_id(self, project_id: str):
         return await self.ws_client.send_request(

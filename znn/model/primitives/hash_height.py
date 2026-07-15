@@ -23,10 +23,18 @@ class HashHeight:
         return self.to_bytes()
 
     @staticmethod
-    def from_json(json_data):
-        if not json_data:
+    def from_json(json_data, *, strict=True):
+        if not json_data and not strict:
             return EMPTY_HASH_HEIGHT
-        return HashHeight(Hash.parse(json_data["hash"]), int(json_data["height"]))
+        if not isinstance(json_data, dict):
+            raise TypeError("Hash-height JSON must be an object")
+        if "height" not in json_data:
+            raise ValueError("Hash-height JSON requires height")
+        height = json_data["height"]
+        if not isinstance(height, int) or isinstance(height, bool):
+            raise TypeError("Hash-height JSON height must be an integer")
+        hash_text = json_data.get("hash", str(EMPTY_HASH))
+        return HashHeight(Hash.parse(hash_text), height)
 
     def to_json(self):
         return {"hash": str(self.hash), "height": self.height}

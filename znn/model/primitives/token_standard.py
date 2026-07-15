@@ -1,5 +1,4 @@
 import bech32
-from copy import deepcopy
 
 HRP = "zts"
 
@@ -8,6 +7,8 @@ class TokenStandard:
     LENGTH = 10
 
     def __init__(self, hrp: str, core: bytes):
+        if not isinstance(core, (bytes, bytearray, memoryview)):
+            raise TypeError("Token-standard core must be bytes-like")
         core = bytes(core)
         if hrp != HRP:
             raise ValueError(f"Token-standard HRP must be {HRP!r}")
@@ -60,15 +61,24 @@ class TokenStandard:
 
     @staticmethod
     def from_json(value: dict) -> "TokenStandard":
-        instance = TokenStandard.__new__(TokenStandard)
-        instance.hrp = value.get("hrp", HRP)
-        instance.core = deepcopy(value["core"])
-        instance._wire_json = deepcopy(value)
-        return instance
+        if not isinstance(value, dict):
+            raise TypeError("Token-standard JSON must be an object")
+        core = value.get("core")
+        if not isinstance(core, str) or len(core) != TokenStandard.LENGTH * 2:
+            raise ValueError(
+                "Token-standard JSON core must be exactly 20 hexadecimal characters"
+            )
+        if core != core.lower():
+            raise ValueError("Token-standard JSON core must use lowercase hexadecimal characters")
+        try:
+            decoded = bytes.fromhex(core)
+        except ValueError as error:
+            raise ValueError(
+                "Token-standard JSON core must contain only hexadecimal characters"
+            ) from error
+        return TokenStandard(value.get("hrp", HRP), decoded)
 
     def to_json(self) -> dict:
-        if hasattr(self, "_wire_json"):
-            return deepcopy(self._wire_json)
         return {"core": self.core_to_hex.removeprefix("0x")}
 
     def to_bytes(self) -> bytes:

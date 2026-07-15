@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 
 from znn.api.embedded.plasma import PlasmaApi
@@ -59,7 +60,7 @@ class Transact:
 
     async def _generate_nonce(self, data_hash: str, difficulty: int) -> str:
         if self.pow_provider is None:
-            return generate(data_hash, difficulty)
+            return await asyncio.to_thread(generate, data_hash, difficulty)
         result = self.pow_provider(data_hash, difficulty)
         if hasattr(result, "__await__"):
             return await result  # type: ignore[misc]
@@ -68,6 +69,12 @@ class Transact:
     async def prepare_block(self, account_block: AccountBlock) -> AccountBlock:
         """Populate, PoW, hash, and sign a block without publishing it."""
         ledger = self._ledger()
+        if (
+            not isinstance(account_block.difficulty, int)
+            or isinstance(account_block.difficulty, bool)
+            or not 0 <= account_block.difficulty <= (1 << 64) - 1
+        ):
+            raise TransactionError("Difficulty must fit an unsigned 64-bit integer")
         supplied_difficulty = account_block.difficulty > 0
         if supplied_difficulty and (
             not isinstance(account_block.nonce, bytes) or len(account_block.nonce) != 8
@@ -95,13 +102,23 @@ class Transact:
             await self._validate_receive(account_block, ledger)
 
         required = await self._plasma().get_internal_required_pow_for_account_block(account_block)
-        required_difficulty = int(required.get("requiredDifficulty", 0))
+        required_difficulty = required.get("requiredDifficulty", 0)
+        if (
+            not isinstance(required_difficulty, int)
+            or isinstance(required_difficulty, bool)
+            or not 0 <= required_difficulty <= (1 << 64) - 1
+        ):
+            raise TransactionError("Node returned an invalid required PoW difficulty")
         if required_difficulty == 0:
             account_block.difficulty = 0
             account_block.nonce = bytes(8)
             account_block.fused_plasma = int(required["basePlasma"])
         else:
             difficulty = account_block.difficulty or required_difficulty
+            if difficulty < required_difficulty:
+                raise TransactionError(
+                    "Preselected difficulty is below the node-required difficulty"
+                )
             data_hash = account_block_data_hash(
                 bytes(account_block.address), account_block.previous_hash.core
             )
@@ -111,10 +128,17 @@ class Transact:
                 else await self._generate_nonce(data_hash, difficulty)
             )
             account_block.difficulty = difficulty
-            account_block.nonce = bytes.fromhex(nonce_hex)
+            try:
+                account_block.nonce = bytes.fromhex(nonce_hex)
+            except (TypeError, ValueError) as error:
+                raise TransactionError("PoW provider returned a non-hexadecimal nonce") from error
             if len(account_block.nonce) != 8:
                 raise TransactionError("PoW provider returned a nonce with invalid length")
-            if not verify(data_hash, difficulty, nonce_hex):
+            try:
+                valid_nonce = verify(data_hash, difficulty, nonce_hex)
+            except ValueError as error:
+                raise TransactionError("PoW provider returned an invalid nonce") from error
+            if not valid_nonce:
                 raise TransactionError("PoW provider returned an invalid nonce")
             account_block.fused_plasma = int(required.get("availablePlasma", 0))
 

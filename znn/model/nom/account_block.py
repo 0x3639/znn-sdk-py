@@ -1,5 +1,7 @@
 import base64
+import re
 
+from znn.model._base64 import decode_model_base64
 from znn.model.primitives.address import Address
 from znn.model.primitives.address import EMPTY_ADDRESS
 from znn.model.primitives.hash import EMPTY_HASH
@@ -34,44 +36,124 @@ class AccountBlock:
         self.__dict__.update(kwargs)
 
     @staticmethod
-    def from_json(json_data):
+    def from_json(json_data, *, strict=True, require_response=False):
+        if not isinstance(json_data, dict):
+            raise TypeError("Account-block JSON must be an object")
         known_keys = {
             "version", "blockType", "chainIdentifier", "fromBlockHash", "hash",
             "previousHash", "height", "momentumAcknowledged", "address",
             "toAddress", "amount", "tokenStandard", "fusedPlasma", "data",
             "difficulty", "nonce", "publicKey", "signature",
         }
+        required = {
+            "version", "blockType", "chainIdentifier", "fromBlockHash", "hash",
+            "previousHash", "height", "momentumAcknowledged", "address",
+            "toAddress", "amount", "tokenStandard", "fusedPlasma", "data",
+            "difficulty", "nonce", "publicKey", "signature",
+        }
+        missing = required - set(json_data)
+        if strict and missing:
+            raise ValueError(f"Missing required account-block fields: {sorted(missing)}")
+        response_required = {"descendantBlocks", "basePlasma", "usedPlasma", "changesHash"}
+        response_missing = response_required - set(json_data)
+        if strict and require_response and response_missing:
+            raise ValueError(
+                f"Missing required account-block response fields: {sorted(response_missing)}"
+            )
+
+        def number(key, default):
+            value = json_data.get(key, default)
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise TypeError(f"Account-block {key} must be an integer")
+            if not 0 <= value <= (1 << 64) - 1:
+                raise ValueError(f"Account-block {key} must fit an unsigned 64-bit integer")
+            return value
+
+        amount_text = json_data.get("amount", "0")
+        if not isinstance(amount_text, str) or not re.fullmatch(
+            r"0|[1-9][0-9]*", amount_text
+        ):
+            raise ValueError("Account-block amount must be a canonical decimal string")
+
+        def binary(key):
+            value = json_data.get(key, "")
+            return decode_model_base64(value, f"Account-block {key}")
+
         nonce_text = json_data.get("nonce", "0000000000000000")
+        if not isinstance(nonce_text, str) or len(nonce_text) != 16:
+            raise ValueError("Account-block nonce must be exactly 16 hexadecimal characters")
+        if nonce_text != nonce_text.lower():
+            raise ValueError("Account-block nonce must use lowercase hexadecimal characters")
         try:
             nonce = bytes.fromhex(nonce_text)
-        except ValueError:
-            nonce = nonce_text
+        except ValueError as error:
+            raise ValueError("Account-block nonce must contain only hexadecimal characters") from error
         kwargs = {
-            "version": int(json_data.get("version", 1)),
-            "block_type": int(json_data.get("blockType", 0)),
-            "chain_identifier": int(json_data.get("chainIdentifier", 1)),
+            "version": number("version", 1),
+            "block_type": number("blockType", 0),
+            "chain_identifier": number("chainIdentifier", 1),
             "from_block_hash": Hash.parse(json_data.get("fromBlockHash", str(EMPTY_HASH))),
             "hash": Hash.parse(json_data.get("hash", str(EMPTY_HASH))),
             "previous_hash": Hash.parse(json_data.get("previousHash", str(EMPTY_HASH))),
-            "height": int(json_data.get("height", 0)),
+            "height": number("height", 0),
             "momentum_acknowledged": HashHeight.from_json(
-                json_data.get("momentumAcknowledged")
+                json_data.get("momentumAcknowledged"), strict=strict
             ),
             "address": Address.parse(json_data.get("address", str(EMPTY_ADDRESS))),
             "to_address": Address.parse(json_data.get("toAddress", str(EMPTY_ADDRESS))),
-            "amount": int(json_data.get("amount", 0)),
+            "amount": int(amount_text),
             "token_standard": TokenStandard.parse(json_data.get("tokenStandard", str(EMPTY_ZTS))),
-            "fused_plasma": int(json_data.get("fusedPlasma", 0)),
-            "data": base64.b64decode(json_data.get("data", "")),
-            "difficulty": int(json_data.get("difficulty", 0)),
+            "fused_plasma": number("fusedPlasma", 0),
+            "data": binary("data"),
+            "difficulty": number("difficulty", 0),
             "nonce": nonce,
-            "public_key": base64.b64decode(json_data.get("publicKey", "")),
-            "signature": base64.b64decode(json_data.get("signature", "")),
+            "public_key": binary("publicKey"),
+            "signature": binary("signature"),
             "_momentum_was_empty": not bool(json_data.get("momentumAcknowledged")),
             "_extra_fields": {
                 key: value for key, value in json_data.items() if key not in known_keys
             },
         }
+        extras = kwargs["_extra_fields"]
+        if "descendantBlocks" in extras and not isinstance(extras["descendantBlocks"], list):
+            raise TypeError("Account-block descendantBlocks must be an array")
+        if isinstance(extras.get("descendantBlocks"), list):
+            extras["descendantBlocks"] = [
+                AccountBlock.from_json(
+                    item, strict=strict, require_response=require_response
+                )
+                for item in extras["descendantBlocks"]
+            ]
+        for key in ("basePlasma", "usedPlasma"):
+            if key in extras and (
+                not isinstance(extras[key], int)
+                or isinstance(extras[key], bool)
+                or not 0 <= extras[key] <= (1 << 64) - 1
+            ):
+                raise ValueError(
+                    f"Account-block {key} must fit an unsigned 64-bit integer"
+                )
+        if "changesHash" in extras:
+            if not isinstance(extras["changesHash"], str):
+                raise TypeError("Account-block changesHash must be a hash string")
+            extras["changesHash"] = Hash.parse(extras["changesHash"])
+        for key in ("token", "confirmationDetail", "pairedAccountBlock"):
+            if key in extras and not isinstance(extras[key], dict):
+                raise TypeError(f"Account-block {key} must be an object")
+        if isinstance(extras.get("pairedAccountBlock"), dict):
+            extras["pairedAccountBlock"] = AccountBlock.from_json(
+                extras["pairedAccountBlock"],
+                strict=strict,
+                require_response=require_response,
+            )
+        if isinstance(extras.get("token"), dict):
+            from znn.model.models import Token
+            extras["token"] = Token.from_json(extras["token"], strict=strict)
+        if isinstance(extras.get("confirmationDetail"), dict):
+            from znn.model.models import AccountBlockConfirmationDetail
+            extras["confirmationDetail"] = AccountBlockConfirmationDetail.from_json(
+                extras["confirmationDetail"], strict=strict
+            )
         return AccountBlock(**kwargs)
 
     def to_json(self):
@@ -96,6 +178,15 @@ class AccountBlock:
             "publicKey": base64.b64encode(self.public_key).decode(),
             "signature": base64.b64encode(self.signature).decode(),
         }
+        def wire(value):
+            if isinstance(value, list):
+                return [wire(item) for item in value]
+            if isinstance(value, Hash):
+                return str(value)
+            if hasattr(value, "to_json"):
+                return value.to_json()
+            return value
+
         response_fields = {
             "token": self._extra_fields.get("token"),
             "descendantBlocks": self._extra_fields.get("descendantBlocks"),
@@ -105,10 +196,12 @@ class AccountBlock:
             "confirmationDetail": self._extra_fields.get("confirmationDetail"),
             "pairedAccountBlock": self._extra_fields.get("pairedAccountBlock"),
         }
-        result.update(
-            {key: value for key, value in response_fields.items() if key in self._extra_fields}
-        )
-        result.update(self._extra_fields)
+        result.update({
+            key: wire(value)
+            for key, value in response_fields.items()
+            if key in self._extra_fields
+        })
+        result.update({key: wire(value) for key, value in self._extra_fields.items()})
         return result
 
     @staticmethod
@@ -136,6 +229,22 @@ class AccountBlock:
             raise ValueError("Account-block nonce must be exactly 8 bytes")
         if self.amount < 0 or self.amount >= 1 << 256:
             raise ValueError("Account-block amount must fit an unsigned 256-bit integer")
+        unsigned_64 = {
+            "version": self.version,
+            "chain_identifier": self.chain_identifier,
+            "block_type": self.block_type,
+            "height": self.height,
+            "momentum_height": self.momentum_acknowledged.height,
+            "fused_plasma": self.fused_plasma,
+            "difficulty": self.difficulty,
+        }
+        for name, value in unsigned_64.items():
+            if (
+                not isinstance(value, int)
+                or isinstance(value, bool)
+                or not 0 <= value <= (1 << 64) - 1
+            ):
+                raise ValueError(f"Account-block {name} must fit an unsigned 64-bit integer")
         return Hash.digest(
             b"".join(
                 [

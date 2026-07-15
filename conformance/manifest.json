@@ -473,7 +473,7 @@
       "symbol": "znn.model.models.AcceleratorProject"
     },
     "model.AccountBlock": {
-      "symbol": "znn.model.models.AccountBlock"
+      "symbol": "znn.model.nom.account_block.AccountBlock"
     },
     "model.AccountBlockConfirmationDetail": {
       "symbol": "znn.model.models.AccountBlockConfirmationDetail"
@@ -680,232 +680,232 @@
       "symbol": "znn.model.primitives.token_standard.TokenStandard"
     },
     "rpc.embedded.accelerator.getAll": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.accelerator.AcceleratorApi.get_all"
     },
     "rpc.embedded.accelerator.getPhaseById": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.accelerator.AcceleratorApi.get_phase_by_id"
     },
     "rpc.embedded.accelerator.getPillarVotes": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.accelerator.AcceleratorApi.get_pillar_votes"
     },
     "rpc.embedded.accelerator.getProjectById": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.accelerator.AcceleratorApi.get_project_by_id"
     },
     "rpc.embedded.accelerator.getVoteBreakdown": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.accelerator.AcceleratorApi.get_vote_breakdown"
     },
     "rpc.embedded.bridge.getAllNetworks": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_all_networks"
     },
     "rpc.embedded.bridge.getAllUnsignedWrapTokenRequests": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_all_unsigned_wrap_token_requests"
     },
     "rpc.embedded.bridge.getAllUnwrapTokenRequests": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_all_unwrap_token_requests"
     },
     "rpc.embedded.bridge.getAllUnwrapTokenRequestsByToAddress": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_all_unwrap_token_requests_by_to_address"
     },
     "rpc.embedded.bridge.getAllWrapTokenRequests": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_all_wrap_token_requests"
     },
     "rpc.embedded.bridge.getAllWrapTokenRequestsByToAddress": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_all_wrap_token_requests_by_to_address"
     },
     "rpc.embedded.bridge.getAllWrapTokenRequestsByToAddressNetworkClassAndChainId": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_all_wrap_token_requests_by_to_address_network_class_and_chain_id"
     },
     "rpc.embedded.bridge.getBridgeInfo": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_bridge_info"
     },
     "rpc.embedded.bridge.getFeeTokenPair": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_fee_token_pair"
     },
     "rpc.embedded.bridge.getNetworkInfo": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_network_info"
     },
     "rpc.embedded.bridge.getOrchestratorInfo": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_orchestrator_info"
     },
     "rpc.embedded.bridge.getSecurityInfo": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_security_info"
     },
     "rpc.embedded.bridge.getTimeChallengesInfo": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_time_challenges_info"
     },
     "rpc.embedded.bridge.getUnwrapTokenRequestByHashAndLog": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_unwrap_token_request_by_hash_and_log"
     },
     "rpc.embedded.bridge.getWrapTokenRequestById": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.bridge.BridgeApi.get_wrap_token_request_by_id"
     },
     "rpc.embedded.htlc.getById": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.htlc.HtlcApi.get_by_id"
     },
     "rpc.embedded.htlc.getProxyUnlockStatus": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.htlc.HtlcApi.get_proxy_unlock_status"
     },
     "rpc.embedded.liquidity.getFrontierRewardByPage": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.liquidity.LiquidityApi.get_frontier_reward_by_page"
     },
     "rpc.embedded.liquidity.getLiquidityInfo": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.liquidity.LiquidityApi.get_liquidity_info"
     },
     "rpc.embedded.liquidity.getLiquidityStakeEntriesByAddress": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.liquidity.LiquidityApi.get_liquidity_stake_entries_by_address"
     },
     "rpc.embedded.liquidity.getSecurityInfo": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.liquidity.LiquidityApi.get_security_info"
     },
     "rpc.embedded.liquidity.getTimeChallengesInfo": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.liquidity.LiquidityApi.get_time_challenges_info"
     },
     "rpc.embedded.liquidity.getUncollectedReward": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.liquidity.LiquidityApi.get_uncollected_reward"
     },
     "rpc.embedded.pillar.checkNameAvailability": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.pillar.PillarApi.check_name_availability"
     },
     "rpc.embedded.pillar.getAll": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.pillar.PillarApi.get_all"
     },
     "rpc.embedded.pillar.getByName": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.pillar.PillarApi.get_by_name"
     },
     "rpc.embedded.pillar.getByOwner": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.pillar.PillarApi.get_by_owner"
     },
     "rpc.embedded.pillar.getDelegatedPillar": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.pillar.PillarApi.get_delegated_pillar"
     },
     "rpc.embedded.pillar.getDepositedQsr": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.pillar.PillarApi.get_deposited_qsr"
     },
     "rpc.embedded.pillar.getFrontierRewardByPage": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.pillar.PillarApi.get_frontier_reward_by_page"
     },
     "rpc.embedded.pillar.getPillarEpochHistory": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.pillar.PillarApi.get_pillar_epoch_history"
     },
     "rpc.embedded.pillar.getPillarsHistoryByEpoch": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.pillar.PillarApi.get_pillars_history_by_epoch"
     },
     "rpc.embedded.pillar.getQsrRegistrationCost": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.pillar.PillarApi.get_qsr_registration_cost"
     },
     "rpc.embedded.pillar.getUncollectedReward": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.pillar.PillarApi.get_uncollected_reward"
     },
     "rpc.embedded.plasma.get": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.plasma.PlasmaApi.get"
     },
     "rpc.embedded.plasma.getEntriesByAddress": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.plasma.PlasmaApi.get_entries_by_address"
     },
     "rpc.embedded.plasma.getRequiredPoWForAccountBlock": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.plasma.PlasmaApi.get_internal_required_pow_for_account_block"
     },
     "rpc.embedded.sentinel.getAllActive": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.sentinel.SentinelApi.get_all_active"
     },
     "rpc.embedded.sentinel.getByOwner": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.sentinel.SentinelApi.get_by_owner"
     },
     "rpc.embedded.sentinel.getDepositedQsr": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.sentinel.SentinelApi.get_deposited_qsr"
     },
     "rpc.embedded.sentinel.getFrontierRewardByPage": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.sentinel.SentinelApi.get_frontier_reward_by_page"
     },
     "rpc.embedded.sentinel.getUncollectedReward": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.sentinel.SentinelApi.get_uncollected_reward"
     },
     "rpc.embedded.spork.getAll": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.spork.SporkApi.get_all"
     },
     "rpc.embedded.stake.getEntriesByAddress": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.stake.StakeApi.get_entries_by_address"
     },
     "rpc.embedded.stake.getFrontierRewardByPage": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.stake.StakeApi.get_frontier_reward_by_page"
     },
     "rpc.embedded.stake.getUncollectedReward": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.stake.StakeApi.get_uncollected_reward"
     },
     "rpc.embedded.swap.getAssets": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.swap.SwapApi.get_assets"
     },
     "rpc.embedded.swap.getAssetsByKeyIdHash": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.swap.SwapApi.get_assets_by_key_id_hash"
     },
     "rpc.embedded.swap.getLegacyPillars": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.swap.SwapApi.get_legacy_pillars"
     },
     "rpc.embedded.token.getAll": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.token.TokenApi.get_all"
     },
     "rpc.embedded.token.getByOwner": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.token.TokenApi.get_by_owner"
     },
     "rpc.embedded.token.getByZts": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.embedded.token.TokenApi.get_by_zts"
     },
     "rpc.ledger.getAccountBlockByHash": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.get_account_block_by_hash"
     },
     "rpc.ledger.getAccountBlocksByHeight": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.get_account_blocks_by_height"
     },
     "rpc.ledger.getAccountBlocksByPage": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.get_account_blocks_by_page"
     },
     "rpc.ledger.getAccountInfoByAddress": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.get_account_info_by_address"
     },
     "rpc.ledger.getDetailedMomentumsByHeight": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.get_detailed_momentums_by_height"
     },
     "rpc.ledger.getFrontierAccountBlock": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.get_frontier_account_block"
     },
     "rpc.ledger.getFrontierMomentum": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.get_frontier_momentum"
     },
     "rpc.ledger.getMomentumBeforeTime": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.get_momentum_before_time"
     },
     "rpc.ledger.getMomentumByHash": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.get_momentum_by_hash"
     },
     "rpc.ledger.getMomentumsByHeight": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.get_momentums_by_height"
     },
     "rpc.ledger.getMomentumsByPage": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.get_momentums_by_page"
     },
     "rpc.ledger.getUnconfirmedBlocksByAddress": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.get_unconfirmed_blocks_by_address"
     },
     "rpc.ledger.getUnreceivedBlocksByAddress": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.get_unreceived_blocks_by_address"
     },
     "rpc.ledger.publishRawTransaction": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.ledger.LedgerApi.publish_raw_transaction"
     },
     "rpc.ledger.subscribe": {
-      "symbol": "znn.api"
+      "symbol": "znn.client.websocket.WsClient.subscribe"
     },
     "rpc.stats.networkInfo": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.stats.StatsApi.network_info"
     },
     "rpc.stats.osInfo": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.stats.StatsApi.os_info"
     },
     "rpc.stats.processInfo": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.stats.StatsApi.process_info"
     },
     "rpc.stats.syncInfo": {
-      "symbol": "znn.api"
+      "symbol": "znn.api.stats.StatsApi.sync_info"
     },
     "sdk.lifecycle": {
       "symbol": "znn.sdk.Zenon"
@@ -917,10 +917,10 @@
       "symbol": "znn.model.nom.account_block.AccountBlock"
     },
     "transaction.hashing": {
-      "symbol": "AccountBlock.get_hash"
+      "symbol": "znn.model.nom.account_block.AccountBlock.get_hash"
     },
     "transaction.signing": {
-      "symbol": "KeyPair.sign_hash"
+      "symbol": "znn.wallet.keypair.KeyPair.sign_hash"
     },
     "transport.http": {
       "symbol": "znn.client.http.HttpClient"

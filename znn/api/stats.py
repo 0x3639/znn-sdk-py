@@ -1,12 +1,9 @@
-from znn.client.websocket import get_default_client
+from znn.api.client import get_api_client
 
 
 class StatsApi:
     def __init__(self, ws_client=None):
-        self.ws_client = ws_client
-
-        if self.ws_client is None:
-            self.ws_client = get_default_client()
+        self.ws_client = get_api_client(ws_client)
 
     async def os_info(self):
         """Get OS info of the connected node."""

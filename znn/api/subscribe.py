@@ -1,4 +1,4 @@
-from znn.client.websocket import get_default_client
+from znn.api.client import get_api_client
 
 
 class SubscribeApi:
@@ -23,19 +23,23 @@ class SubscribeApi:
     """
 
     def __init__(self, ws_client=None):
-        self.ws_client = ws_client
+        self.ws_client = get_api_client(ws_client)
 
-        if self.ws_client is None:
-            self.ws_client = get_default_client()
+    async def subscribe_to(self, topic: str, address: str | None = None):
+        if address is None:
+            return await self.ws_client.send_and_listen("ledger.subscribe", [topic])
+        return await self.ws_client.send_and_listen(
+            "ledger.subscribe", [topic, address]
+        )
 
     async def to_momentums(self):
-        return await self.ws_client.send_and_listen("ledger.subscribe", ["momentums"])
+        return await self.subscribe_to("momentums")
 
     async def to_all_account_blocks(self):
-        return await self.ws_client.send_and_listen("ledger.subscribe", ["allAccountBlocks"])
+        return await self.subscribe_to("allAccountBlocks")
 
     async def to_account_blocks_by_address(self, address: str):
-        return await self.ws_client.send_and_listen("ledger.subscribe", ["accountBlocksByAddress", address])
+        return await self.subscribe_to("accountBlocksByAddress", address)
 
     async def to_unreceived_account_blocks_by_address(self, address: str):
-        return await self.ws_client.send_and_listen("ledger.subscribe", ["unreceivedAccountBlocksByAddress", address])
+        return await self.subscribe_to("unreceivedAccountBlocksByAddress", address)
