@@ -8,16 +8,17 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
         with:
           repository: 0x3639/zenon-sdk-spec
           ref: 69f2ecf955bafa4037c73f4b858619ef834e738b
           path: spec-kit
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: setup.py
       - run: python -m pip install -e '.[dev]'
       - run: python -m compileall -q znn tests
       - run: ruff check --select E9,F63,F7,F82 znn tests
