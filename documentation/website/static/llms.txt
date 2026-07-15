@@ -6,7 +6,7 @@ Use the Markdown links below as the authoritative documentation. No public node 
 
 ## Start here
 
-- [Installation and quick start](https://pyznn.0x3639.com/llms/installation.md): Install pyznn and connect the high-level SDK to an explicit Zenon endpoint.
+- [Installation and quick start](https://pyznn.0x3639.com/llms/installation.md): Install znn-sdk and connect the high-level SDK to an explicit Zenon endpoint.
 - [JSON-RPC clients](https://pyznn.0x3639.com/llms/json-rpc-client.md): Use the HTTP and persistent WebSocket transports, structured errors, and subscriptions.
 - [API facades and embedded contracts](https://pyznn.0x3639.com/llms/api.md): Call every canonical Zenon RPC and build embedded-contract account blocks.
 - [Models, primitives, amounts, and PoW](https://pyznn.0x3639.com/llms/models-and-primitives.md): Work with strict wire models, protocol primitives, exact amounts, and Zenon proof of work.

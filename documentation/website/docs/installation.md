@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: Installation and quick start
-description: Install pyznn and connect the high-level SDK to an explicit Zenon endpoint.
+description: Install znn-sdk and connect the high-level SDK to an explicit Zenon endpoint.
 ---
 
 # Installation and quick start
@@ -14,8 +14,10 @@ canonical `go-zenon` wire behavior.
 
 Install the published package:
 
+The package is published on PyPI as `znn-sdk`; the import name stays `znn`.
+
 ```bash
-python3.12 -m pip install pyznn
+python3.12 -m pip install znn-sdk
 ```
 
 For development, clone the repository and install the package with its test
