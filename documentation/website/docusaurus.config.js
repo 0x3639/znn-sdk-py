@@ -4,13 +4,16 @@
 const {themes} = require("prism-react-renderer");
 const lightCodeTheme = themes.github;
 const darkCodeTheme = themes.dracula;
+const siteUrl = process.env.DOCUSAURUS_URL || "https://pyznn.0x3639.com";
+const baseUrl = process.env.DOCUSAURUS_BASE_URL || "/";
+const llmsUrl = new URL(`${baseUrl}llms.txt`, siteUrl).toString();
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: "PyZNN",
   tagline: "Stable, typed Python SDK for the Zenon Network of Momentum.",
-  url: "https://pyznn.0x3639.com",
-  baseUrl: "/",
+  url: siteUrl,
+  baseUrl,
   onBrokenLinks: "throw",
   favicon: "img/favicon.ico",
   markdown: {
@@ -109,7 +112,7 @@ const config = {
               },
               {
                 label: "LLM index",
-                href: "https://pyznn.0x3639.com/llms.txt",
+                href: llmsUrl,
               },
             ],
           },

@@ -17,6 +17,10 @@ concurrency:
 
 jobs:
   deploy:
+    # Remove these overrides after pyznn.0x3639.com is active in DNS and Pages.
+    env:
+      DOCUSAURUS_URL: https://www.0x3639.com
+      DOCUSAURUS_BASE_URL: /znn-sdk-py/
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
