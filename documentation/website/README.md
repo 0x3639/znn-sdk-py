@@ -32,11 +32,6 @@ The site is published at `https://pyznn.0x3639.com/` by
 builds Docusaurus, uploads `build/` as a Pages artifact, and deploys it. The
 workflow can also be run manually from the Actions tab.
 
-Until the new custom domain is active, the workflow overrides Docusaurus to
-serve the inherited project URL at `https://www.0x3639.com/znn-sdk-py/`. Remove
-`DOCUSAURUS_URL` and `DOCUSAURUS_BASE_URL` from the workflow when completing the
-custom-domain cutover.
-
 ### Custom domain activation
 
 Repository configuration alone does not create the DNS record. Before the
