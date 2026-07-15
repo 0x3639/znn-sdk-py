@@ -1,0 +1,33 @@
+# PyZNN
+
+> PyZNN is the Python 3.12+ SDK for the Zenon Network of Momentum. It implements the stable language-neutral SDK specification with strict typed models, all canonical RPC calls, embedded contract builders, wallets, transactions, and deterministic offline conformance tests.
+
+Use the Markdown links below as the authoritative documentation. No public node is configured by default. Examples using `your-node.example` require an endpoint operated or trusted by the user. All integer token amounts are base units unless explicitly converted with `znn.amount`.
+
+## Start here
+
+- [Installation and quick start](https://pyznn.0x3639.com/llms/installation.md): Install pyznn and connect the high-level SDK to an explicit Zenon endpoint.
+- [JSON-RPC clients](https://pyznn.0x3639.com/llms/json-rpc-client.md): Use the HTTP and persistent WebSocket transports, structured errors, and subscriptions.
+- [API facades and embedded contracts](https://pyznn.0x3639.com/llms/api.md): Call every canonical Zenon RPC and build embedded-contract account blocks.
+- [Models, primitives, amounts, and PoW](https://pyznn.0x3639.com/llms/models-and-primitives.md): Work with strict wire models, protocol primitives, exact amounts, and Zenon proof of work.
+- [Wallets, key files, and transactions](https://pyznn.0x3639.com/llms/wallet.md): Derive keys, encrypt interoperable key files, and prepare and publish account blocks.
+
+## Examples and troubleshooting
+
+- [Example cookbook](https://pyznn.0x3639.com/llms/cookbook.md): Complete, copyable examples for connections, typed RPCs, subscriptions, wallets, key files, ABI calls, transactions, PoW, and offline tests.
+- [Errors and troubleshooting](https://pyznn.0x3639.com/llms/errors-and-troubleshooting.md): Exception taxonomy, retry guidance, validation failures, and remedies for HTTP, WebSocket, model, ABI, key-file, PoW, and transaction problems.
+
+## Complete reference
+
+- [Complete API reference](https://pyznn.0x3639.com/llms/api-reference.md): Exact constructors, method signatures, wire calls, and result types for every API facade.
+- [Complete model reference](https://pyznn.0x3639.com/llms/model-reference.md): Wire keys, Python attributes, types, required fields, defaults, and enum values for every stable model.
+- [Stable SDK conformance](https://pyznn.0x3639.com/llms/conformance.md): Understand the stable specification coverage, offline vectors, manifest, and CI gates.
+
+## Optional
+
+- [Contributing](https://pyznn.0x3639.com/llms/contributing.md): Set up development, run the offline conformance gates, and build the documentation site.
+- [LLM and agent access](https://pyznn.0x3639.com/llms/llm-access.md): Machine-readable documentation endpoints, authority rules, retrieval guidance, prompt patterns, and facts that code-generating agents must preserve.
+
+## Full context
+
+- [Complete PyZNN documentation corpus](https://pyznn.0x3639.com/llms-full.txt): All authoritative pages concatenated in reading order.

@@ -1,9 +1,3 @@
----
-sidebar_position: 5
-title: Wallets, key files, and transactions
-description: Derive keys, encrypt interoperable key files, and prepare and publish account blocks.
----
-
 # Wallets, key files, and transactions
 
 ## Create or import a wallet

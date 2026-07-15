@@ -1,0 +1,2928 @@
+# PyZNN complete documentation corpus
+
+> Generated from the authoritative Docusaurus Markdown by `tools/generate_documentation.py`.
+
+Canonical project: https://github.com/0x3639/znn-sdk-py
+Documentation root: https://pyznn.0x3639.com/
+
+---
+
+Source: https://pyznn.0x3639.com/llms/installation.md
+Title: Installation and quick start
+
+# Installation and quick start
+
+PyZNN is a Python 3.12+ SDK for the Zenon Network of Momentum protocol. The
+current release follows the stable language-neutral SDK specification and the
+canonical `go-zenon` wire behavior.
+
+## Install
+
+Install the published package:
+
+```bash
+python3.12 -m pip install pyznn
+```
+
+For development, clone the repository and install the package with its test
+dependencies:
+
+```bash
+python3.12 -m pip install -e ".[dev]"
+```
+
+## Connect the SDK
+
+PyZNN never selects a public third-party node automatically. Always pass an
+endpoint you operate or trust.
+
+```python
+import asyncio
+
+from znn import Zenon
+from znn.api.ledger import LedgerApi
+
+
+async def main():
+    sdk = Zenon()
+    await sdk.initialize("wss://your-node.example:35998")
+    try:
+        ledger = LedgerApi(sdk.client)
+        momentum = await ledger.get_frontier_momentum()
+        print(momentum.height, momentum.hash)
+    finally:
+        await sdk.disconnect()
+
+
+asyncio.run(main())
+```
+
+`Zenon.initialize()` accepts `http`, `https`, `ws`, and `wss` URLs. HTTP is a
+request/response transport. WebSocket maintains a persistent connection and is
+required for subscriptions.
+
+| Endpoint | Client | Best for |
+| --- | --- | --- |
+| `http://` or `https://` | `HttpClient` | RPC calls without subscriptions |
+| `ws://` or `wss://` | `WsClient` | RPC calls, subscriptions, and reconnect/resubscribe |
+
+The optional `timeout` argument must be positive and defaults to 30 seconds.
+WebSocket-specific options such as `reconnect`, `reconnect_interval`, and
+`maximum_attempts` can be passed to `initialize()` as keyword arguments.
+
+```python
+await sdk.initialize(
+    "wss://your-node.example:35998",
+    timeout=15,
+    reconnect=True,
+    reconnect_interval=1,
+    maximum_attempts=10,
+)
+```
+
+## What is included
+
+- strict address, hash, token-standard, hash-height, and account-block types;
+- 72 generated wire models and six enums;
+- all 76 canonical positional JSON-RPC methods with typed results;
+- all 84 embedded ABI functions and 68 corrected transaction builders;
+- HTTP and persistent WebSocket transports with structured errors;
+- BIP39/SLIP-0010 wallets, Ed25519 signing, and encrypted key files;
+- transaction preparation, fused plasma, PoW, signing, and publication;
+- exact amount conversion and a complete offline conformance runner.
+
+Continue with [JSON-RPC clients](./json-rpc-client.md), [API facades](./api.md),
+or [wallets and transactions](./wallet.md).
+
+---
+
+Source: https://pyznn.0x3639.com/llms/json-rpc-client.md
+Title: JSON-RPC clients
+
+# JSON-RPC clients
+
+PyZNN provides HTTP and WebSocket JSON-RPC 2.0 transports. Both correlate
+integer request IDs, validate the protocol envelope, normalize transport
+failures, and raise structured node errors.
+
+## HTTP
+
+Use `HttpClient` for request/response calls when subscriptions are not needed.
+Its blocking standard-library HTTP work is moved off the event loop.
+
+```python
+from znn.api.ledger import LedgerApi
+from znn.client.http import HttpClient
+
+client = HttpClient("https://your-node.example:35997", timeout=15)
+ledger = LedgerApi(client)
+
+momentum = await ledger.get_frontier_momentum()
+print(momentum.height)
+
+await client.disconnect()
+```
+
+## Persistent WebSocket
+
+`WsClient` keeps one socket open, supports concurrent correlated requests, and
+runs a listener task for responses and subscription notifications.
+
+```python
+from znn.api.stats import StatsApi
+from znn.client.websocket import WsClient
+
+client = WsClient(
+    "wss://your-node.example:35998",
+    reconnect=True,
+    reconnect_interval=1,
+    maximum_attempts=10,
+    connect_timeout=15,
+)
+
+await client.connect()
+try:
+    sync = await StatsApi(client).sync_info()
+    print(sync.state)
+finally:
+    await client.disconnect()
+```
+
+`maximum_attempts=0` means unlimited reconnect attempts. During recovery, all
+active subscriptions are restored as one set. Pending requests fail explicitly
+instead of hanging, and permanent recovery failure is delivered to subscription
+consumers as `TransportError`.
+
+## Raw requests
+
+Most applications should use an API facade because it applies canonical method
+names, positional parameters, and typed result parsing. Raw calls remain
+available when necessary:
+
+```python
+result = await client.send_request("ledger.getFrontierMomentum", [])
+```
+
+## Subscriptions
+
+Subscriptions require WebSocket and return an async iterator. Each iteration
+produces one normalized update object rather than the outer JSON-RPC
+notification envelope.
+
+```python
+from znn.api.subscribe import SubscribeApi
+
+subscription = await SubscribeApi(client).to_all_account_blocks()
+
+async for account_block in subscription:
+    print(account_block["hash"])
+```
+
+Available convenience subscriptions are:
+
+- `to_momentums()`;
+- `to_all_account_blocks()`;
+- `to_account_blocks_by_address(address)`;
+- `to_unreceived_account_blocks_by_address(address)`.
+
+`subscribe_to(topic, address=None)` is also available, but only the canonical
+topic and arity combinations are accepted.
+
+## Errors
+
+```python
+from znn.client.errors import JsonRpcError, TransportError
+
+try:
+    await LedgerApi(client).get_momentum_by_hash("0" * 64)
+except JsonRpcError as error:
+    print(error.code, error.message, error.data)
+except TransportError as error:
+    print(f"connection or protocol failure: {error}")
+```
+
+`JsonRpcError` preserves the node's code, message, optional data, method, and
+parameters. `TransportError` covers connection failures, invalid JSON,
+malformed JSON-RPC envelopes, response-ID mismatches, send failures, and
+exhausted WebSocket recovery.
+
+## No implicit endpoint
+
+`get_default_client()` remains as a compatibility helper, but its client is
+intentionally unconfigured. Calling it without first configuring a trusted URL
+raises `TransportError`; new code should construct `WsClient(url)` directly.
+No public node is selected for you.
+
+For complete runnable connection, concurrency, subscription, fake-transport,
+and error-handling examples, continue to the [example cookbook](./cookbook.md).
+
+---
+
+Source: https://pyznn.0x3639.com/llms/api.md
+Title: API facades and embedded contracts
+
+# API facades and embedded contracts
+
+API facade methods map Python names to the stable SDK's canonical positional
+JSON-RPC calls. Read methods return validated model instances, enums, integers,
+booleans, lists, or `None` according to the declared result type.
+
+## Core APIs
+
+Pass either `HttpClient` or `WsClient` to a facade:
+
+```python
+from znn.api.ledger import LedgerApi
+from znn.api.stats import StatsApi
+from znn.client.http import HttpClient
+
+client = HttpClient("https://your-node.example:35997")
+
+ledger = LedgerApi(client)
+stats = StatsApi(client)
+
+account = await ledger.get_account_info_by_address(
+    "z1qpa4flg6m7r27rvpyturavecmemkxh7ms8vrp7"
+)
+if account is not None:
+    print(account.address, account.blockCount)
+
+sync = await stats.sync_info()
+print(sync.state, sync.currentHeight, sync.targetHeight)
+```
+
+| Facade | Purpose |
+| --- | --- |
+| `LedgerApi` | Account blocks, momentums, balances, and publication |
+| `StatsApi` | OS, process, network, and synchronization information |
+| `SubscribeApi` | Four canonical subscription topics over WebSocket |
+
+Generated result parsing is strict: required wire keys cannot be omitted,
+decimal strings must be canonical, nested models are constructed recursively,
+and nullable results are accepted only where the specification permits them.
+
+## Embedded APIs
+
+The complete stable embedded surface is available, including the recently
+added Bridge, HTLC, Liquidity, and Spork modules.
+
+| Facade | Read and builder surface |
+| --- | --- |
+| `AcceleratorApi` | Projects, phases, votes, donations, and project updates |
+| `BridgeApi` | Networks, wrap/unwrap requests, security, administration, and bridge operations |
+| `HtlcApi` | HTLC lookup, proxy-unlock status, creation, reclaim, and unlock |
+| `LiquidityApi` | Liquidity state, rewards, stakes, security, and administration |
+| `PillarApi` | Pillars, delegation, rewards, registration, and QSR management |
+| `PlasmaApi` | Plasma state, fusion entries, PoW requirements, fuse, and cancel |
+| `SentinelApi` | Sentinel state, registration, rewards, and QSR management |
+| `SporkApi` | Spork listing, creation, and activation |
+| `StakeApi` | Stake entries, rewards, stake, cancel, and collection |
+| `SwapApi` | Swap assets, legacy pillars, and asset retrieval |
+| `TokenApi` | Token lookup, issuance, mint, burn, and update |
+
+Read methods call the node. Builder methods are synchronous and create an
+unsigned `AccountBlock` locally. They do not publish anything.
+
+```python
+from znn.api.embedded.stake import StakeApi
+from znn.model.primitives.address import Address
+
+stake_api = StakeApi(client)
+
+address = Address.parse("z1qpa4flg6m7r27rvpyturavecmemkxh7ms8vrp7")
+entries = await stake_api.get_entries_by_address(address)
+unsigned_block = stake_api.stake(
+    duration_in_sec=30 * 24 * 60 * 60,
+    amount=100_000_000,
+)
+```
+
+Prepare, inspect, and publish the returned block with `Transact` or the
+high-level `Zenon` service. See [Wallets and transactions](./wallet.md).
+
+## ABI behavior
+
+The embedded builders use the complete set of 84 ABI functions and enforce the
+stable ABI boundary rules:
+
+- integers and booleans are not silently coerced;
+- fixed-size byte values must have the exact declared length;
+- addresses, hashes, and token standards use their canonical binary cores;
+- custom arrays preserve their specified element types and layout;
+- decoding rejects malformed payloads with normalized `ValueError` failures.
+
+The ABI compatibility registry is isolated from `eth_abi`'s process-global
+default registry, so importing `znn.abi.registry` cannot change unrelated ABI
+code in the same process.
+
+## Compatibility aliases
+
+Canonical names are preferred. A small number of legacy Python names remain as
+aliases, including token lookup by owner address and accelerator project
+listing. The removed node method
+`embedded.plasma.getRequiredFusionAmount` remains only as a deprecated stub and
+raises `NotImplementedError` rather than sending a non-canonical RPC call.
+
+See the [complete API reference](./api-reference.md) for every exact signature,
+wire method, method kind, and declared result. The [example cookbook](./cookbook.md)
+contains complete online and offline usage patterns.
+
+---
+
+Source: https://pyznn.0x3639.com/llms/models-and-primitives.md
+Title: Models, primitives, amounts, and PoW
+
+# Models, primitives, amounts, and PoW
+
+The stable SDK surface includes 72 field-aware models and six `IntEnum` types.
+RPC facades construct these types automatically, but they are also available for
+local parsing and serialization.
+
+## Protocol primitives
+
+`Address`, `Hash`, `TokenStandard`, and `HashHeight` validate their complete
+wire encodings. Invalid prefixes, checksums, lengths, ranges, or hexadecimal
+forms are rejected at the parse boundary.
+
+```python
+from znn.model.primitives.address import Address
+from znn.model.primitives.hash import Hash
+from znn.model.primitives.token_standard import ZNN_ZTS
+
+address = Address.parse("z1qpa4flg6m7r27rvpyturavecmemkxh7ms8vrp7")
+block_hash = Hash.parse("00" * 32)
+token_standard = ZNN_ZTS
+
+assert Address.from_json(address.to_json()) == address
+assert Hash.from_json(block_hash.to_json()) == block_hash
+```
+
+Primitive objects are hashable and can be used as dictionary keys or set
+members. Bytes-like constructor inputs are accepted only when their lengths are
+correct.
+
+## Generated models
+
+```python
+from znn.model.models import AccountInfo
+
+account = AccountInfo.from_json(wire_document)
+print(account.blockCount)       # wire key: accountHeight
+print(account.balanceInfoMap)
+
+assert account.to_json() == wire_document
+```
+
+Model parsing is field-aware rather than a generic dictionary wrapper:
+
+- required fields must be present and cannot be shadowed by model methods;
+- wire keys are mapped to their declared Python attributes;
+- decimal-string values become arbitrary-precision Python integers;
+- nested models, primitives, arrays, maps, and enums are constructed recursively;
+- standard base64 accepts valid padded or unpadded input and rejects malformed
+  alphabets or padding.
+
+The generated enums are `AcceleratorProjectStatus`, `AcceleratorProjectVote`,
+`BlockTypeEnum`, `ReceiveBlockTypeEnum`, `SendBlockTypeEnum`, and `SyncState`.
+
+## Account blocks
+
+`AccountBlock` has strict template and response parsing, canonical hashing, and
+local builders for send, receive, and contract-call blocks.
+
+```python
+from znn.model.nom.account_block import AccountBlock
+from znn.model.primitives.address import Address
+from znn.model.primitives.hash import Hash
+from znn.model.primitives.token_standard import ZNN_ZTS
+
+send = AccountBlock.send(
+    Address.parse("z1qzpcwr6lk0zhejzpt04j2jcqqadtu046ffr8nr"),
+    ZNN_ZTS,
+    100_000_000,
+)
+receive = AccountBlock.receive(Hash.parse("00" * 32))
+
+wire = send.to_json()
+parsed = AccountBlock.from_json(wire)
+```
+
+Response-only fields are required when RPC results are parsed. Nonces are
+validated immediately as eight-byte standard-base64 values, and the canonical
+hash preimage uses the exact protocol field order and encodings.
+
+## Exact amount conversion
+
+Use the amount helpers instead of binary floating point:
+
+```python
+from znn.amount import from_base_units, to_base_units
+
+base_units = to_base_units("1.23456789", decimals=8)
+assert base_units == 123_456_789
+assert from_base_units(base_units, decimals=8) == "1.23456789"
+```
+
+Inputs are decimal strings, integers, or `Decimal` values. Fractional digits
+beyond the requested precision are truncated toward zero.
+
+## Proof of work
+
+```python
+from znn.pow import generate, verify
+
+data_hash = "00" * 32
+nonce = generate(data_hash, difficulty=100)
+assert verify(data_hash, difficulty=100, nonce_hex=nonce)
+```
+
+PoW hashes are 32-byte lowercase hex, nonces are eight-byte lowercase hex, and
+difficulty must fit an unsigned 64-bit integer. Difficulty zero has the
+canonical all-zero nonce. Transaction preparation normally handles this for you
+and can use a custom synchronous or asynchronous PoW provider.
+
+See the [complete model reference](./model-reference.md) for every Python
+attribute, wire key, wire type, nested target, required flag, default, and enum
+value.
+
+---
+
+Source: https://pyznn.0x3639.com/llms/wallet.md
+Title: Wallets, key files, and transactions
+
+# Wallets, key files, and transactions
+
+## Create or import a wallet
+
+`KeyStore` uses English BIP39 mnemonics and SLIP-0010 Ed25519 derivation at
+`m/44'/73404'/{account}'`.
+
+```python
+from znn.wallet.keystore import KeyStore
+
+store = KeyStore.new_random()
+first = store.get_key_pair(0)
+second = store.get_key_pair(1)
+
+print(store.mnemonic)       # back this up securely; never log it in production
+print(first.address)
+```
+
+Import an existing mnemonic or the stable 16/32-byte entropy profile:
+
+```python
+store = KeyStore.from_mnemonic(mnemonic, passphrase="optional BIP39 passphrase")
+store = KeyStore.from_entropy(entropy_hex)
+```
+
+Account indices must be non-negative integers. Call `clear()` on key stores and
+key pairs when you no longer need their in-memory secret material.
+
+## Keys and signatures
+
+```python
+from znn.wallet.keypair import KeyPair, verify_signature
+
+keypair = KeyPair(private_key_hex)
+
+# Legacy text signing returns a base64-encoded signature.
+signature = keypair.sign("Hello, aliens").decode()
+verify_signature(keypair.public_key, signature, "Hello, aliens")
+
+# Protocol signing uses the raw 32-byte hash and returns 64 raw signature bytes.
+block_signature = keypair.sign_hash(block_hash)
+```
+
+`KeyPair` accepts only 32-byte Ed25519 private keys. Account-block signing does
+not base64-wrap or transform the canonical hash before signing.
+
+## Encrypted key files
+
+Version-one key files use Argon2id and AES-256-GCM with authenticated data
+`zenon`.
+
+```python
+import json
+
+from znn.wallet.keyfile import decrypt, encrypt, needs_upgrade
+
+document = encrypt(store, password, timestamp=1_700_000_000)
+serialized = json.dumps(document)
+
+restored = decrypt(json.loads(serialized), password)
+assert restored.get_key_pair(0).address == store.get_key_pair(0).address
+
+if needs_upgrade(document):
+    document = encrypt(restored, password)
+```
+
+Customize Argon2 work factors when required by your application:
+
+```python
+document = encrypt(
+    store,
+    password,
+    kdf_config={
+        "timeCost": 2,
+        "memoryCost": 131072,
+        "hashLength": 32,
+        "parallelism": 4,
+    },
+)
+```
+
+Malformed documents, unsupported algorithms, invalid parameters, bad
+passwords, and corrupted ciphertext raise `KeyFileError`. Keep the full
+document, including `baseAddress`, `timestamp`, `version`, and every declared
+crypto field.
+
+## Prepare before publishing
+
+Transaction preparation and publication are separate operations. Preparation:
+
+1. reads the account and momentum frontiers;
+2. validates receive blocks when applicable;
+3. requests the required plasma/PoW values;
+4. applies fused plasma or generates and verifies PoW;
+5. hashes the canonical account-block preimage; and
+6. signs the raw hash with Ed25519.
+
+```python
+from znn.api.embedded.plasma import PlasmaApi
+from znn.api.ledger import LedgerApi
+from znn.model.nom.account_block import AccountBlock
+from znn.model.primitives.address import Address
+from znn.model.primitives.token_standard import ZNN_ZTS
+from znn.wallet.transact import Transact
+
+block = AccountBlock.send(
+    Address.parse("z1qzpcwr6lk0zhejzpt04j2jcqqadtu046ffr8nr"),
+    ZNN_ZTS,
+    100_000_000,
+)
+
+tx = Transact(
+    private_key_hex,
+    ledger_api=LedgerApi(client),
+    plasma_api=PlasmaApi(client),
+)
+
+prepared = await tx.prepare_block(block)
+# Inspect or transfer `prepared` to another policy layer here.
+published = await tx.publish_block(prepared)
+```
+
+`publish_block()` requires the canonical `null` success response and returns the
+prepared block. `fast_forward_block()` combines preparation and publication.
+Convenience methods `send()`, `receive()`, and `call_contract()` build and
+fast-forward their respective blocks.
+
+## High-level SDK transaction flow
+
+```python
+from znn import Zenon
+from znn.model.nom.account_block import AccountBlock
+
+sdk = Zenon()
+await sdk.initialize("wss://your-node.example:35998")
+try:
+    block = AccountBlock.send(to_address, token_standard, amount)
+    published = await sdk.send(block, keypair)
+finally:
+    await sdk.disconnect()
+```
+
+`Zenon.prepare_block()` is also available when you need only a prepared block.
+Use the explicit `Transact.prepare_block()` / `publish_block()` split when that
+prepared block must later be published unchanged.
+
+## Custom PoW providers
+
+A provider receives `(data_hash_hex, difficulty)` and returns a 16-character
+lowercase nonce hex string. It may be synchronous or asynchronous.
+
+```python
+async def remote_pow(data_hash, difficulty):
+    return await trusted_pow_service(data_hash, difficulty)
+
+sdk.set_pow_provider(remote_pow)
+```
+
+Returned nonces are length-checked and verified locally. A preselected nonce and
+difficulty are also accepted when they satisfy at least the node-required
+difficulty.
+
+The [example cookbook](./cookbook.md) includes complete environment-driven
+wallet, key-file, embedded builder, prepare/publish, high-level SDK, ABI, and PoW
+programs.
+
+---
+
+Source: https://pyznn.0x3639.com/llms/cookbook.md
+Title: Example cookbook
+
+# Example cookbook
+
+These examples favor explicit inputs and cleanup. Online examples read trusted
+endpoint and account values from environment variables; PyZNN does not provide
+or select a public node.
+
+## Choose the right entry point
+
+| Goal | Recommended entry point |
+| --- | --- |
+| Read RPC data over HTTP | `HttpClient` plus an API facade |
+| Read RPC data and subscribe | `WsClient` plus API facades |
+| Manage connection and submit a block | `Zenon` |
+| Prepare and publish in separate policy steps | `Transact` |
+| Build an embedded contract call without I/O | An embedded API builder |
+| Test application code without a node | A fake transport passed to an API facade |
+
+## Read the frontier momentum over HTTP
+
+Required environment variable: `ZNN_HTTP_URL`, containing an `http://` or
+`https://` endpoint you operate or trust.
+
+```python
+import asyncio
+import os
+
+from znn.api.ledger import LedgerApi
+from znn.client.http import HttpClient
+
+
+async def main() -> None:
+    client = HttpClient(os.environ["ZNN_HTTP_URL"], timeout=15)
+    try:
+        momentum = await LedgerApi(client).get_frontier_momentum()
+        print(
+            {
+                "height": momentum.height,
+                "hash": str(momentum.hash),
+                "timestamp": momentum.timestamp,
+            }
+        )
+    finally:
+        await client.disconnect()
+
+
+asyncio.run(main())
+```
+
+Result type: `znn.model.models.Momentum`. A non-nullable `null`, missing field,
+wrong field type, malformed primitive, or non-canonical decimal string is
+rejected during response parsing.
+
+## Run concurrent typed RPC calls over WebSocket
+
+Required environment variable: `ZNN_WS_URL`, containing a `ws://` or `wss://`
+endpoint.
+
+```python
+import asyncio
+import os
+
+from znn.api.ledger import LedgerApi
+from znn.api.stats import StatsApi
+from znn.client.websocket import WsClient
+
+
+async def main() -> None:
+    client = WsClient(
+        os.environ["ZNN_WS_URL"],
+        connect_timeout=15,
+        reconnect=True,
+        reconnect_interval=1,
+        maximum_attempts=10,
+    )
+    await client.connect()
+    try:
+        momentum, sync = await asyncio.gather(
+            LedgerApi(client).get_frontier_momentum(),
+            StatsApi(client).sync_info(),
+        )
+        print(momentum.height)
+        print(sync.state, sync.currentHeight, sync.targetHeight)
+    finally:
+        await client.disconnect()
+
+
+asyncio.run(main())
+```
+
+The persistent client correlates response IDs, so concurrent requests can
+complete in a different order from the order in which they were sent.
+
+## Read an optional RPC result
+
+Required environment variables: `ZNN_HTTP_URL` and `ZNN_BLOCK_HASH`.
+
+```python
+import asyncio
+import os
+
+from znn.api.ledger import LedgerApi
+from znn.client.http import HttpClient
+from znn.model.nom.account_block import AccountBlock
+
+
+async def main() -> None:
+    client = HttpClient(os.environ["ZNN_HTTP_URL"])
+    try:
+        block = await LedgerApi(client).get_account_block_by_hash(
+            os.environ["ZNN_BLOCK_HASH"]
+        )
+        if block is None:
+            print("block not found")
+            return
+        assert isinstance(block, AccountBlock)
+        print(block.height, block.hash, block.address)
+    finally:
+        await client.disconnect()
+
+
+asyncio.run(main())
+```
+
+`get_account_block_by_hash()` is nullable. By contrast,
+`get_frontier_momentum()` is not nullable and rejects `null`.
+
+## Consume a subscription
+
+Required environment variable: `ZNN_WS_URL`.
+
+```python
+import asyncio
+import os
+
+from znn.api.subscribe import SubscribeApi
+from znn.client.websocket import WsClient
+
+
+async def main() -> None:
+    client = WsClient(os.environ["ZNN_WS_URL"], maximum_attempts=10)
+    await client.connect()
+    try:
+        subscription = await SubscribeApi(client).to_momentums()
+        async for update in subscription:
+            print(update)
+    finally:
+        await client.disconnect()
+
+
+asyncio.run(main())
+```
+
+Each yielded value is one item from the notification's `result` array. The
+JSON-RPC envelope and subscription identifier are normalized away. On reconnect,
+the client restores the complete active subscription set before delivery
+continues.
+
+## Subscribe for one account
+
+Required environment variables: `ZNN_WS_URL` and `ZNN_ADDRESS`.
+
+```python
+import asyncio
+import os
+
+from znn.api.subscribe import SubscribeApi
+from znn.client.websocket import WsClient
+from znn.model.primitives.address import Address
+
+
+async def main() -> None:
+    address = Address.parse(os.environ["ZNN_ADDRESS"])
+    client = WsClient(os.environ["ZNN_WS_URL"])
+    await client.connect()
+    try:
+        subscription = await SubscribeApi(client).to_account_blocks_by_address(
+            str(address)
+        )
+        async for update in subscription:
+            print(update["hash"])
+    finally:
+        await client.disconnect()
+
+
+asyncio.run(main())
+```
+
+Parsing the address before sending catches invalid prefixes, payload lengths,
+and checksums locally.
+
+## Test typed RPC behavior without a node
+
+API facades accept any transport with an async `send_request(method, params)`
+method. This makes application tests deterministic and network-free.
+
+```python
+import asyncio
+
+from znn.api.stats import StatsApi
+from znn.model.models import SyncInfo, SyncState
+
+
+class FakeTransport:
+    async def send_request(self, method, params):
+        assert method == "stats.syncInfo"
+        assert params == []
+        return {
+            "state": 2,
+            "currentHeight": 123,
+            "targetHeight": 123,
+        }
+
+
+async def main() -> None:
+    result = await StatsApi(FakeTransport()).sync_info()
+    assert isinstance(result, SyncInfo)
+    assert result.state is SyncState.SyncDone
+    assert result.currentHeight == 123
+    assert result.targetHeight == 123
+
+
+asyncio.run(main())
+```
+
+Return raw wire data from the fake. `ApiClient` still applies the production
+result parser, so tests exercise the same required fields and nested types.
+
+## Parse and serialize a strict model
+
+```python
+from znn.model.models import SyncInfo, SyncState
+
+wire = {
+    "state": 1,
+    "currentHeight": 120,
+    "targetHeight": 123,
+}
+
+sync = SyncInfo.from_json(wire)
+assert sync.state is SyncState.Syncing
+assert sync.currentHeight == 120
+assert sync.to_json() == wire
+```
+
+Unknown Python attributes are not populated from wire keys, required fields
+cannot be removed, and nested models are constructed recursively.
+
+## Convert display amounts exactly
+
+```python
+from decimal import Decimal
+
+from znn.amount import from_base_units, to_base_units
+
+assert to_base_units("1.23456789", 8) == 123_456_789
+assert to_base_units(Decimal("0.00000001"), 8) == 1
+assert from_base_units(123_456_789, 8) == "1.23456789"
+```
+
+Do not use binary `float` for token amounts. Transaction and builder amounts are
+integer base units.
+
+## Create and derive a wallet
+
+```python
+from znn.wallet.keystore import KeyStore
+
+store = KeyStore.new_random(passphrase="optional BIP39 passphrase")
+account_0 = store.get_key_pair(0)
+account_1 = store.get_key_pair(1)
+
+print(store.mnemonic)  # back up securely; do not log in production
+print(account_0.address)
+print(account_1.address)
+```
+
+The derivation paths are `m/44'/73404'/0'` and `m/44'/73404'/1'`.
+
+## Import canonical entropy
+
+Required environment variable: `ZNN_ENTROPY_HEX`, containing exactly 16 or 32
+bytes of hexadecimal entropy.
+
+```python
+import os
+
+from znn.wallet.keystore import KeyStore
+
+store = KeyStore.from_entropy(os.environ["ZNN_ENTROPY_HEX"])
+print(store.get_key_pair(0).address)
+```
+
+Other entropy sizes are outside the stable SDK profile and raise `ValueError`.
+
+## Sign text and protocol hashes
+
+Required environment variable: `ZNN_PRIVATE_KEY`, containing a 32-byte Ed25519
+private key as hexadecimal.
+
+```python
+import os
+
+from znn.model.primitives.hash import Hash
+from znn.wallet.keypair import KeyPair, verify_signature
+
+keypair = KeyPair(os.environ["ZNN_PRIVATE_KEY"])
+
+text_signature = keypair.sign("Hello, aliens").decode()
+verify_signature(keypair.public_key, text_signature, "Hello, aliens")
+
+block_hash = Hash.parse("00" * 32)
+raw_signature = keypair.sign_hash(block_hash)
+assert len(raw_signature) == 64
+```
+
+Text signing preserves the legacy base64 behavior. Account-block signing signs
+the raw 32-byte hash and returns 64 raw signature bytes.
+
+## Encrypt and decrypt a key file
+
+Required environment variables: `ZNN_MNEMONIC` and `ZNN_KEYFILE_PASSWORD`.
+
+```python
+import json
+import os
+
+from znn.wallet.keyfile import decrypt, encrypt, needs_upgrade
+from znn.wallet.keystore import KeyStore
+
+store = KeyStore.from_mnemonic(os.environ["ZNN_MNEMONIC"])
+password = os.environ["ZNN_KEYFILE_PASSWORD"]
+
+document = encrypt(store, password)
+serialized = json.dumps(document)
+restored = decrypt(json.loads(serialized), password)
+
+assert restored.get_key_pair(0).address == store.get_key_pair(0).address
+assert not needs_upgrade(document)
+```
+
+Store the entire JSON document. Removing the version, timestamp, base address,
+Argon2 parameters, nonce, cipher name, KDF name, or ciphertext makes the key file
+invalid.
+
+## Build an embedded contract call without I/O
+
+```python
+from znn.api.embedded.stake import StakeApi
+from znn.model.nom.account_block import AccountBlock
+from znn.model.primitives.address import STAKE_ADDRESS
+from znn.model.primitives.token_standard import ZNN_ZTS
+
+block = StakeApi().stake(
+    duration_in_sec=30 * 24 * 60 * 60,
+    amount=100_000_000,
+)
+
+assert isinstance(block, AccountBlock)
+assert block.to_address == STAKE_ADDRESS
+assert block.token_standard == ZNN_ZTS
+assert block.amount == 100_000_000
+assert block.data
+```
+
+The builder encodes ABI data and returns an unsigned block. It neither connects
+to a node nor publishes the block.
+
+## Inspect ABI call data
+
+```python
+from znn.embedded.definitions import STAKE_ABI
+
+duration = 30 * 24 * 60 * 60
+payload = STAKE_ABI.encode("Stake", [duration])
+name, parameters = STAKE_ABI.decode_call_data(payload)
+
+assert name == "Stake"
+assert parameters == {"durationInSec": duration}
+```
+
+`decode_call_data()` identifies the function by its four-byte selector and
+returns decoded custom Zenon types in their canonical string forms.
+
+## Prepare, inspect, and publish a send block
+
+Required environment variables: `ZNN_WS_URL`, `ZNN_PRIVATE_KEY`, and
+`ZNN_TO_ADDRESS`.
+
+```python
+import asyncio
+import os
+
+from znn.api.embedded.plasma import PlasmaApi
+from znn.api.ledger import LedgerApi
+from znn.client.websocket import WsClient
+from znn.model.nom.account_block import AccountBlock
+from znn.model.primitives.address import Address
+from znn.model.primitives.token_standard import ZNN_ZTS
+from znn.wallet.transact import Transact
+
+
+async def main() -> None:
+    client = WsClient(os.environ["ZNN_WS_URL"])
+    await client.connect()
+    try:
+        block = AccountBlock.send(
+            Address.parse(os.environ["ZNN_TO_ADDRESS"]),
+            ZNN_ZTS,
+            100_000_000,
+        )
+        transaction = Transact(
+            os.environ["ZNN_PRIVATE_KEY"],
+            ledger_api=LedgerApi(client),
+            plasma_api=PlasmaApi(client),
+        )
+
+        prepared = await transaction.prepare_block(block)
+        print(prepared.to_json())  # policy or user review point
+        published = await transaction.publish_block(prepared)
+        print(published.hash)
+    finally:
+        await client.disconnect()
+
+
+asyncio.run(main())
+```
+
+Do not blindly retry publication after an ambiguous transport failure. Query the
+account chain by the prepared hash first so the same intent is not submitted
+twice by application logic.
+
+## Submit an embedded builder through the high-level SDK
+
+Required environment variables: `ZNN_WS_URL` and `ZNN_PRIVATE_KEY`.
+
+```python
+import asyncio
+import os
+
+from znn import Zenon
+from znn.api.embedded.stake import StakeApi
+
+
+async def main() -> None:
+    sdk = Zenon()
+    await sdk.initialize(os.environ["ZNN_WS_URL"])
+    try:
+        unsigned = StakeApi().stake(
+            duration_in_sec=30 * 24 * 60 * 60,
+            amount=100_000_000,
+        )
+        published = await sdk.send(unsigned, os.environ["ZNN_PRIVATE_KEY"])
+        print(published.hash)
+    finally:
+        await sdk.disconnect()
+
+
+asyncio.run(main())
+```
+
+`Zenon.send()` applies the SDK chain identifier, prepares the block, and then
+publishes it.
+
+## Use a custom asynchronous PoW provider
+
+```python
+from znn import Zenon
+from znn.pow import generate
+
+
+async def local_worker(data_hash: str, difficulty: int) -> str:
+    # Replace this with a trusted worker if required. The SDK verifies its result.
+    return generate(data_hash, difficulty)
+
+
+sdk = Zenon()
+sdk.set_pow_provider(local_worker)
+```
+
+The provider must return exactly 16 lowercase hexadecimal characters. PyZNN
+verifies the nonce against the data hash and required difficulty before signing.
+
+## Generate and verify PoW directly
+
+```python
+from znn.pow import generate, verify
+
+data_hash = "00" * 32
+nonce = generate(data_hash, difficulty=100, start_nonce=bytes(8))
+
+assert len(nonce) == 16
+assert verify(data_hash, difficulty=100, nonce_hex=nonce)
+```
+
+Difficulty zero uses the canonical nonce `0000000000000000`.
+
+---
+
+Source: https://pyznn.0x3639.com/llms/errors-and-troubleshooting.md
+Title: Errors and troubleshooting
+
+# Errors and troubleshooting
+
+PyZNN rejects malformed local values and malformed node responses as early as
+possible. Catch the narrowest exception that your application can handle.
+
+## Exception taxonomy
+
+| Exception | Module | Meaning |
+| --- | --- | --- |
+| `TypeError` | Python/runtime validators | A value has the wrong Python type or an unsupported coercion was attempted |
+| `ValueError` | Primitives, models, amounts, PoW | A value has the right general type but an invalid format, range, checksum, length, or schema |
+| `JsonRpcError` | `znn.client.errors` | The node returned a JSON-RPC `error` object |
+| `TransportError` | `znn.client.errors` | Connection, JSON, envelope, correlation, send, reconnect, or shutdown failure |
+| `ABIError` | `znn.abi.abi` | Invalid ABI declaration, parameter, selector, encoding, or decoding |
+| `KeyFileError` | `znn.wallet.keyfile` | Malformed key-file document, unsupported crypto, bad password, or corrupted ciphertext |
+| `TransactionError` | `znn.wallet.transact` | Invalid preparation inputs, node PoW response, provider nonce, or publication result |
+| `ReceiveValidationError` | `znn.wallet.transact` | A receive template or its source block does not match the signer |
+| `NotImplementedError` | Removed compatibility surface | A historical method is not present in the canonical node API |
+
+## Handle node and transport failures separately
+
+```python
+from znn.client.errors import JsonRpcError, TransportError
+
+try:
+    momentum = await ledger.get_frontier_momentum()
+except JsonRpcError as error:
+    # The node processed the request and returned a protocol error.
+    print(error.code, error.message, error.data, error.method, error.parameters)
+except TransportError as error:
+    # Delivery or response validity is uncertain.
+    print(f"transport failure: {error}")
+```
+
+`JsonRpcError.to_json()` returns a serializable record containing the preserved
+error context.
+
+## Retry guidance
+
+| Operation | Automatic retry guidance |
+| --- | --- |
+| Idempotent read RPC | Retry with bounded backoff when appropriate |
+| WebSocket subscription | Let `WsClient` reconnect and resubscribe |
+| Local builder, model parse, amount conversion | Do not retry; correct the input |
+| Transaction preparation before publication | Usually safe to restart from fresh frontiers |
+| Publication with a definite JSON-RPC error | Correct the rejected block before retrying |
+| Publication with an ambiguous transport failure | Query by prepared hash before any retry |
+
+The library does not silently replay in-flight JSON-RPC requests after a socket
+loss. Pending requests fail explicitly. This prevents an application from
+assuming that a non-idempotent operation was never received.
+
+## “No default Zenon endpoint is configured”
+
+Cause: `get_default_client()` or an API facade with no explicit transport tried
+to perform I/O.
+
+Fix:
+
+```python
+from znn.api.ledger import LedgerApi
+from znn.client.websocket import WsClient
+
+client = WsClient("wss://your-node.example:35998")
+await client.connect()
+ledger = LedgerApi(client)
+```
+
+There is intentionally no fallback public node.
+
+## Invalid endpoint scheme
+
+- `HttpClient` accepts only `http` and `https`.
+- `WsClient` accepts only `ws` and `wss`.
+- `Zenon.initialize()` accepts all four and selects the corresponding client.
+
+Bare hostnames and unsupported schemes raise `ValueError` before connection.
+
+## HTTP response ID does not match the request
+
+The HTTP client requires a JSON-RPC 2.0 object whose integer `id` exactly equals
+the request ID. A proxy, cache, or nonconforming endpoint may return another
+request's response. Treat this as a protocol failure; do not use the result.
+
+## WebSocket request never returns successfully
+
+Pending requests do not survive a connection loss. They receive
+`TransportError`, while the client separately recovers the socket and active
+subscriptions. Callers may retry idempotent reads after recovery.
+
+If `maximum_attempts` is nonzero and all attempts fail, subscription iterators
+also raise terminal `TransportError` instead of waiting forever.
+
+## Invalid subscription topic or arity
+
+Use the convenience methods whenever possible:
+
+```python
+await subscribe.to_momentums()
+await subscribe.to_all_account_blocks()
+await subscribe.to_account_blocks_by_address(address)
+await subscribe.to_unreceived_account_blocks_by_address(address)
+```
+
+The two address-scoped topics require an address. The two global topics reject
+one. Unknown topics, empty subscription IDs, and malformed notification
+envelopes are rejected.
+
+## Required model field is missing
+
+Generated models distinguish absent fields from false-like values such as `0`,
+`false`, an empty list, or an empty map. Supply every field marked `Required`
+in the [complete model reference](./model-reference.md).
+
+```python
+from znn.model.models import SyncInfo
+
+# Raises because targetHeight is absent.
+SyncInfo.from_json({"state": 1, "currentHeight": 10})
+```
+
+Do not work around this with `strict=False` for node responses. RPC parsing uses
+strict runtime models so malformed node data cannot silently enter application
+state.
+
+## Invalid address, hash, or token standard
+
+- Address and token-standard strings require their canonical human-readable
+  prefix, payload size, and checksum.
+- Hash strings contain exactly 64 hexadecimal characters; `Hash.parse()` accepts
+  the core without `0x`.
+- Primitive `from_json()` methods apply the same validation as direct parsing.
+
+Validate user input before making an RPC request or building a transaction.
+
+## Invalid base64
+
+Model bytes accept standard base64 in valid padded or unpadded form. URL-safe
+characters, impossible lengths, misplaced padding, or excess padding raise
+`ValueError`. Account-block nonces must decode to exactly eight bytes.
+
+## Decimal-string response rejected
+
+The wire representation must be a canonical base-10 integer string:
+
+- accepted: `"0"`, `"123"`, `"-1"` where the declared domain permits negatives;
+- rejected: `"01"`, `"+1"`, `"1.0"`, whitespace, exponent notation, booleans,
+  and JSON numbers when the specification declares a decimal string.
+
+The parsed Python value is an arbitrary-precision `int`.
+
+## Amount conversion gives an unexpected value
+
+`to_base_units()` truncates excess fractional digits toward zero. It never
+rounds to nearest.
+
+```python
+from znn.amount import to_base_units
+
+assert to_base_units("1.239", decimals=2) == 123
+```
+
+Use a decimal string or `Decimal`, not `float`. Confirm the token's declared
+decimal count before conversion.
+
+## ABI encoding fails
+
+The ABI codec intentionally rejects convenient but ambiguous coercions:
+
+- boolean is not an integer;
+- integer fields require integers in their valid signed/unsigned range;
+- `bytesN` requires exactly `N` bytes;
+- fixed arrays require the declared number of elements;
+- address, hash, and token-standard inputs must parse canonically;
+- function parameter count must match exactly.
+
+Catch `ABIError` and correct the local builder input. Do not submit partially
+encoded data.
+
+## Key-file decryption fails
+
+`KeyFileError` intentionally does not distinguish a bad password from corrupted
+ciphertext. Check that:
+
+1. `version` is `1`;
+2. `cipherName` is `aes-256-gcm`;
+3. `kdf` is `argon2.IDKey`;
+4. all Argon2 parameters are positive integers and `hashLength` is `32`;
+5. salt, nonce, and cipher data are lowercase `0x`-prefixed hex;
+6. the decrypted entropy derives the declared `baseAddress`.
+
+Use `needs_upgrade()` to compare a valid document's KDF work factors with the
+current target configuration.
+
+## PoW provider returned an invalid nonce
+
+A provider must return a lowercase 16-character hexadecimal string. PyZNN then
+checks that the decoded nonce is eight bytes and satisfies the exact data hash
+and difficulty. A preselected difficulty must be at least the node-required
+difficulty.
+
+Do not disable local verification for remote PoW workers.
+
+## Receive validation fails
+
+Receive preparation requires:
+
+- a non-empty source block hash;
+- empty receive-block data;
+- an existing source block; and
+- a source `toAddress` equal to the signing account.
+
+Any mismatch raises `ReceiveValidationError` before publication.
+
+## Publication returned a non-null result
+
+Canonical `ledger.publishRawTransaction` success is JSON `null`. Any non-null
+success-shaped result raises `TransactionError`, because accepting a different
+shape would hide node incompatibility.
+
+## Removed plasma method raises NotImplementedError
+
+`PlasmaApi.get_required_fusion_amount()` exists only so older applications fail
+clearly. The canonical node removed
+`embedded.plasma.getRequiredFusionAmount`; PyZNN does not send that stale call.
+Use the current plasma and PoW APIs instead.
+
+## Search is empty during local development
+
+The local search index is produced by the static build. Test search with:
+
+```bash
+cd documentation/website
+npm run build
+npm run serve
+```
+
+The development server may not have a complete search index. Production builds
+index documentation and site pages without sending queries to an external
+search service.
+
+---
+
+Source: https://pyznn.0x3639.com/llms/conformance.md
+Title: Stable SDK conformance
+
+# Stable SDK conformance
+
+PyZNN targets the stable `zenon-sdk-spec` 1.0 surface plus its canonical-node
+corrections. Verification is deterministic and does not require a live Zenon
+node.
+
+## Implemented surface
+
+| Surface | Current result |
+| --- | ---: |
+| Stable portable vectors | 764 / 764 |
+| ABI boundary profile | 491 / 491 |
+| All ABI cases | 512 / 512 |
+| Canonical JSON-RPC methods | 76 / 76 |
+| Field-aware models | 72 / 72 |
+| Enums | 6 / 6 |
+| Embedded ABI functions | 84 / 84 |
+| Embedded builders | 68 / 68 |
+| Capability manifest | `full`, 309 mappings |
+| Offline pytest suite | 77 passing |
+| Branch-enabled combined coverage | 95.46% |
+
+The portable result document is emitted as `znn-sdk-results/1` with
+`complete: true`. All capability-manifest symbols resolve to concrete Python
+implementations.
+
+## Run the offline test suite
+
+Clone the stable specification and check out the revision pinned by CI:
+
+```bash
+git clone https://github.com/0x3639/zenon-sdk-spec.git ../zenon-sdk-spec
+git -C ../zenon-sdk-spec checkout 69f2ecf955bafa4037c73f4b858619ef834e738b
+```
+
+Run tests with the specification vectors and localhost transport fixture:
+
+```bash
+ZNN_SPEC_ROOT=../zenon-sdk-spec \
+  python3.12 -m coverage run -m pytest -q
+python3.12 -m coverage report
+```
+
+CI enables branch coverage across the complete `znn` package and requires a
+95.00% combined floor at two-decimal precision. The current audited result is
+97.10% statement coverage, 91.70% branch coverage, and 95.46% combined.
+
+## Run and validate all vectors
+
+```bash
+python3.12 -m znn.conformance \
+  ../zenon-sdk-spec/conformance/vectors \
+  --output znn-sdk-results.json
+
+python3.12 ../zenon-sdk-spec/tools/znn_spec.py \
+  check-results znn-sdk-results.json
+
+python3.12 ../zenon-sdk-spec/tools/znn_spec.py \
+  check-manifest conformance/manifest.json
+```
+
+The three stateful transport cases run the real `HttpClient`, `LedgerApi`, and
+`WsClient` against the specification's localhost HTTP/WebSocket fixture. They
+cover successful-null publication, pagination errors, subscription
+normalization, disconnect, reconnect, resubscribe, and post-reconnect updates.
+The fixture is not a Zenon node and never reaches an external network.
+
+## What the regression suite protects
+
+The expanded offline tests cover:
+
+- every RPC facade and typed response route;
+- all removable required model fields and nested response parsing;
+- canonical account-block hashing, signing, nonce, and base64 boundaries;
+- ABI integers, booleans, fixed bytes, custom arrays, and registry isolation;
+- key-file round trips, configurable KDF parameters, upgrades, and malformed
+  document classes;
+- transaction preparation, fused plasma, PoW providers, receive validation,
+  publication, and provider failures;
+- HTTP protocol and correlation failures;
+- WebSocket send/connect failures, bounded orphan buffers, reconnect races,
+  full-set resubscription retries, terminal recovery errors, and clean shutdown;
+- high-level SDK lifecycle and compatibility aliases.
+
+No known stable conformance failures remain.
+
+## Generated inventories
+
+The model runtime and RPC response routing are generated from the pinned
+specification inventory:
+
+```bash
+python3.12 tools/generate_models.py \
+  ../zenon-sdk-spec/spec/models.json
+
+python3.12 tools/generate_rpc_responses.py \
+  ../zenon-sdk-spec/spec/rpc.json
+```
+
+Generation must reproduce the committed files byte for byte. When the stable
+specification changes, update the pinned revision, regenerate, run the complete
+offline suite, validate the manifest, and document the resulting surface change
+in the same pull request.
+
+---
+
+Source: https://pyznn.0x3639.com/llms/api-reference.md
+Title: Complete API reference
+
+# Complete API reference
+
+> Generated by `tools/generate_documentation.py`. Do not edit this page by hand.
+
+This reference is generated from the installed Python classes and the stable RPC result registry. Parameters are positional on the wire even when Python callers use keyword arguments.
+
+## Conventions
+
+- **RPC** methods perform I/O and return a validated typed result.
+- **AccountBlock builder** methods are synchronous, perform no I/O, and return an unsigned block.
+- **Subscription helper** methods require `WsClient` and return an async iterator.
+- Page indices are zero-based unless a method explicitly accepts a block height.
+- Decimal-string RPC results are converted to arbitrary-precision Python `int` values.
+
+## LedgerApi
+
+Account blocks, momentums, balances, and transaction publication.
+
+Import: `znn.api.ledger.LedgerApi`
+
+Constructor: `LedgerApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `async publish_raw_transaction(account_block: znn.model.nom.account_block.AccountBlock)` | RPC | `ledger.publishRawTransaction` | `null` |
+| `async get_unconfirmed_blocks_by_address(address: str, page_index=0, page_size=50)` | RPC | `ledger.getUnconfirmedBlocksByAddress` | `AccountBlockList` |
+| `async get_unreceived_blocks_by_address(address: str, page_index=0, page_size=50)` | RPC | `ledger.getUnreceivedBlocksByAddress` | `AccountBlockList` |
+| `async get_frontier_account_block(address: str)` | RPC | `ledger.getFrontierAccountBlock` | `AccountBlock or null` |
+| `async get_account_block_by_hash(hashstr: str)` | RPC | `ledger.getAccountBlockByHash` | `AccountBlock or null` |
+| `async get_account_blocks_by_height(address: str, height=1, count=1024)` | RPC | `ledger.getAccountBlocksByHeight` | `AccountBlockList` |
+| `async get_account_blocks_by_page(address: str, page_index=0, page_size=1024)` | RPC | `ledger.getAccountBlocksByPage` | `AccountBlockList` |
+| `async get_frontier_momentum()` | RPC | `ledger.getFrontierMomentum` | `Momentum` |
+| `async get_momentum_before_time(time: int)` | RPC | `ledger.getMomentumBeforeTime` | `Momentum or null` |
+| `async get_momentum_by_hash(hashstr: str)` | RPC | `ledger.getMomentumByHash` | `Momentum or null` |
+| `async get_momentums_by_page(page_index=0, page_size=1024)` | RPC | `ledger.getMomentumsByPage` | `MomentumList` |
+| `async get_momentums_by_height(height=1, count=1024)` | RPC | `ledger.getMomentumsByHeight` | `MomentumList` |
+| `async get_detailed_momentums_by_height(height=1, count=1024)` | RPC | `ledger.getDetailedMomentumsByHeight` | `DetailedMomentumList or null` |
+| `async get_account_info_by_address(address: str)` | RPC | `ledger.getAccountInfoByAddress` | `AccountInfo or null` |
+
+## StatsApi
+
+Node operating-system, process, network, and synchronization state.
+
+Import: `znn.api.stats.StatsApi`
+
+Constructor: `StatsApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `async os_info()` | RPC | `stats.osInfo` | `OsInfo` |
+| `async process_info()` | RPC | `stats.processInfo` | `ProcessInfo` |
+| `async network_info()` | RPC | `stats.networkInfo` | `NetworkInfo` |
+| `async sync_info()` | RPC | `stats.syncInfo` | `SyncInfo` |
+
+## SubscribeApi
+
+Canonical WebSocket subscription topics and normalized async iterators.
+
+Import: `znn.api.subscribe.SubscribeApi`
+
+Constructor: `SubscribeApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `async subscribe_to(topic: str, address: str \| None = None)` | Subscription helper | `ledger.subscribe` | `Subscription` |
+| `async to_momentums()` | Subscription helper | — | `Subscription` |
+| `async to_all_account_blocks()` | Subscription helper | — | `Subscription` |
+| `async to_account_blocks_by_address(address: str)` | Subscription helper | — | `Subscription` |
+| `async to_unreceived_account_blocks_by_address(address: str)` | Subscription helper | — | `Subscription` |
+
+## AcceleratorApi
+
+Accelerator projects, phases, votes, donations, and updates.
+
+Import: `znn.api.embedded.accelerator.AcceleratorApi`
+
+Constructor: `AcceleratorApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `async get_all(page_index=0, page_size=1024)` | RPC | `embedded.accelerator.getAll` | `ProjectList` |
+| `async get_account_blocks_by_page(page_index=0, page_size=1024)` | Compatibility alias | — | `Same as canonical method` |
+| `async get_project_by_id(project_id: str)` | RPC | `embedded.accelerator.getProjectById` | `Project` |
+| `async get_phase_by_id(phase_id: str)` | RPC | `embedded.accelerator.getPhaseById` | `Phase` |
+| `async get_pillar_votes(name: str, hashes)` | RPC | `embedded.accelerator.getPillarVotes` | `array` |
+| `async get_vote_breakdown(hash_id: str)` | RPC | `embedded.accelerator.getVoteBreakdown` | `VoteBreakdown` |
+| `create_project(name: str, description: str, url: str, znn_funds_needed: int, qsr_funds_needed: int)` | AccountBlock builder | — | `AccountBlock` |
+| `add_phase(hash_id: znn.model.primitives.hash.Hash, name: str, description: str, url: str, znn_funds_needed: int, qsr_funds_needed: int)` | AccountBlock builder | — | `AccountBlock` |
+| `update_phase(hash_id: znn.model.primitives.hash.Hash, name: str, description: str, url: str, znn_funds_needed: int, qsr_funds_needed: int)` | AccountBlock builder | — | `AccountBlock` |
+| `donate(amount: int, zts: znn.model.primitives.token_standard.TokenStandard)` | AccountBlock builder | — | `AccountBlock` |
+| `vote_by_name(hash_id: znn.model.primitives.hash.Hash, pillar_name: str, vote: int)` | AccountBlock builder | — | `AccountBlock` |
+| `vote_by_prod_address(hash_id: znn.model.primitives.hash.Hash, vote: int)` | AccountBlock builder | — | `AccountBlock` |
+
+## BridgeApi
+
+Bridge networks, wrap/unwrap requests, security, and administration.
+
+Import: `znn.api.embedded.bridge.BridgeApi`
+
+Constructor: `BridgeApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `async get_all_networks(page_index=0, page_size=1024)` | RPC | `embedded.bridge.getAllNetworks` | `BridgeNetworkInfoList` |
+| `async get_all_unsigned_wrap_token_requests(page_index=0, page_size=1024)` | RPC | `embedded.bridge.getAllUnsignedWrapTokenRequests` | `WrapTokenRequestList` |
+| `async get_all_unwrap_token_requests(page_index=0, page_size=1024)` | RPC | `embedded.bridge.getAllUnwrapTokenRequests` | `UnwrapTokenRequestList` |
+| `async get_all_unwrap_token_requests_by_to_address(to_address: str, page_index=0, page_size=1024)` | RPC | `embedded.bridge.getAllUnwrapTokenRequestsByToAddress` | `UnwrapTokenRequestList` |
+| `async get_all_wrap_token_requests(page_index=0, page_size=1024)` | RPC | `embedded.bridge.getAllWrapTokenRequests` | `WrapTokenRequestList` |
+| `async get_all_wrap_token_requests_by_to_address(to_address: str, page_index=0, page_size=1024)` | RPC | `embedded.bridge.getAllWrapTokenRequestsByToAddress` | `WrapTokenRequestList` |
+| `async get_all_wrap_token_requests_by_to_address_network_class_and_chain_id(to_address: str, network_class: int, chain_id: int, page_index=0, page_size=1024)` | RPC | `embedded.bridge.getAllWrapTokenRequestsByToAddressNetworkClassAndChainId` | `WrapTokenRequestList` |
+| `async get_bridge_info()` | RPC | `embedded.bridge.getBridgeInfo` | `BridgeInfo` |
+| `async get_fee_token_pair(zts: znn.model.primitives.token_standard.TokenStandard)` | RPC | `embedded.bridge.getFeeTokenPair` | `ZtsFeesInfo` |
+| `async get_network_info(network_class: int, chain_id: int)` | RPC | `embedded.bridge.getNetworkInfo` | `BridgeNetworkInfo` |
+| `async get_orchestrator_info()` | RPC | `embedded.bridge.getOrchestratorInfo` | `OrchestratorInfo` |
+| `async get_security_info()` | RPC | `embedded.bridge.getSecurityInfo` | `SecurityInfo` |
+| `async get_time_challenges_info()` | RPC | `embedded.bridge.getTimeChallengesInfo` | `TimeChallengesList` |
+| `async get_unwrap_token_request_by_hash_and_log(tx_hash: znn.model.primitives.hash.Hash, log_index: int)` | RPC | `embedded.bridge.getUnwrapTokenRequestByHashAndLog` | `UnwrapTokenRequest` |
+| `async get_wrap_token_request_by_id(id: znn.model.primitives.hash.Hash)` | RPC | `embedded.bridge.getWrapTokenRequestById` | `WrapTokenRequest` |
+| `change_administrator(administrator: znn.model.primitives.address.Address)` | AccountBlock builder | — | `AccountBlock` |
+| `change_tss_e_c_d_s_a_pub_key(pub_key: str, old_pub_key_signature: str, new_pub_key_signature: str)` | AccountBlock builder | — | `AccountBlock` |
+| `emergency()` | AccountBlock builder | — | `AccountBlock` |
+| `halt(signature: str)` | AccountBlock builder | — | `AccountBlock` |
+| `nominate_guardians(guardians: list)` | AccountBlock builder | — | `AccountBlock` |
+| `propose_administrator(address: znn.model.primitives.address.Address)` | AccountBlock builder | — | `AccountBlock` |
+| `redeem(transaction_hash: znn.model.primitives.hash.Hash, log_index: int)` | AccountBlock builder | — | `AccountBlock` |
+| `remove_network(network_class: int, chain_id: int)` | AccountBlock builder | — | `AccountBlock` |
+| `remove_token_pair(network_class: int, chain_id: int, token_standard: znn.model.primitives.token_standard.TokenStandard, token_address: str)` | AccountBlock builder | — | `AccountBlock` |
+| `revoke_unwrap_request(transaction_hash: znn.model.primitives.hash.Hash, log_index: int)` | AccountBlock builder | — | `AccountBlock` |
+| `set_allow_key_gen(allow_key_gen: bool)` | AccountBlock builder | — | `AccountBlock` |
+| `set_bridge_metadata(metadata: str)` | AccountBlock builder | — | `AccountBlock` |
+| `set_network(network_class: int, chain_id: int, name: str, contract_address: str, metadata: str)` | AccountBlock builder | — | `AccountBlock` |
+| `set_network_metadata(network_class: int, chain_id: int, metadata: str)` | AccountBlock builder | — | `AccountBlock` |
+| `set_orchestrator_info(window_size: int, key_gen_threshold: int, confirmations_to_finality: int, estimated_momentum_time: int)` | AccountBlock builder | — | `AccountBlock` |
+| `set_token_pair(network_class: int, chain_id: int, token_standard: znn.model.primitives.token_standard.TokenStandard, token_address: str, bridgeable: bool, redeemable: bool, owned: bool, min_amount: int, fee_percentage: int, redeem_delay: int, metadata: str)` | AccountBlock builder | — | `AccountBlock` |
+| `unhalt()` | AccountBlock builder | — | `AccountBlock` |
+| `unwrap_token(network_class: int, chain_id: int, transaction_hash: znn.model.primitives.hash.Hash, log_index: int, to_address: znn.model.primitives.address.Address, token_address: str, amount: int, signature: str)` | AccountBlock builder | — | `AccountBlock` |
+| `update_wrap_request(id: znn.model.primitives.hash.Hash, signature: str)` | AccountBlock builder | — | `AccountBlock` |
+| `wrap_token(network_class: int, chain_id: int, to_address: str, amount: int, token_standard: znn.model.primitives.token_standard.TokenStandard)` | AccountBlock builder | — | `AccountBlock` |
+
+## HtlcApi
+
+HTLC lookup, proxy-unlock policy, creation, reclaim, and unlock.
+
+Import: `znn.api.embedded.htlc.HtlcApi`
+
+Constructor: `HtlcApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `async get_by_id(id: znn.model.primitives.hash.Hash)` | RPC | `embedded.htlc.getById` | `HtlcInfo` |
+| `async get_proxy_unlock_status(address: znn.model.primitives.address.Address)` | RPC | `embedded.htlc.getProxyUnlockStatus` | `boolean` |
+| `allow_proxy_unlock()` | AccountBlock builder | — | `AccountBlock` |
+| `create(token: znn.model.primitives.token_standard.TokenStandard, amount: int, hash_locked: znn.model.primitives.address.Address, expiration_time: int, hash_type: int, key_max_size: int, hash_lock: bytes \| None)` | AccountBlock builder | — | `AccountBlock` |
+| `deny_proxy_unlock()` | AccountBlock builder | — | `AccountBlock` |
+| `reclaim(id: znn.model.primitives.hash.Hash)` | AccountBlock builder | — | `AccountBlock` |
+| `unlock(id: znn.model.primitives.hash.Hash, preimage: bytes \| None)` | AccountBlock builder | — | `AccountBlock` |
+
+## LiquidityApi
+
+Liquidity state, rewards, stakes, security, and administration.
+
+Import: `znn.api.embedded.liquidity.LiquidityApi`
+
+Constructor: `LiquidityApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `async get_frontier_reward_by_page(address: znn.model.primitives.address.Address, page_index=0, page_size=1024)` | RPC | `embedded.liquidity.getFrontierRewardByPage` | `RewardHistoryList` |
+| `async get_liquidity_info()` | RPC | `embedded.liquidity.getLiquidityInfo` | `LiquidityInfo` |
+| `async get_liquidity_stake_entries_by_address(address: znn.model.primitives.address.Address, page_index=0, page_size=50)` | RPC | `embedded.liquidity.getLiquidityStakeEntriesByAddress` | `LiquidityStakeList` |
+| `async get_security_info()` | RPC | `embedded.liquidity.getSecurityInfo` | `SecurityInfo` |
+| `async get_time_challenges_info()` | RPC | `embedded.liquidity.getTimeChallengesInfo` | `TimeChallengesList` |
+| `async get_uncollected_reward(address: znn.model.primitives.address.Address)` | RPC | `embedded.liquidity.getUncollectedReward` | `RewardDeposit` |
+| `cancel_liquidity_stake(id: znn.model.primitives.hash.Hash)` | AccountBlock builder | — | `AccountBlock` |
+| `change_administrator(administrator: znn.model.primitives.address.Address)` | AccountBlock builder | — | `AccountBlock` |
+| `collect_reward()` | AccountBlock builder | — | `AccountBlock` |
+| `emergency()` | AccountBlock builder | — | `AccountBlock` |
+| `liquidity_stake(duration_in_sec: int, amount: int, zts: znn.model.primitives.token_standard.TokenStandard)` | AccountBlock builder | — | `AccountBlock` |
+| `nominate_guardians(guardians: list)` | AccountBlock builder | — | `AccountBlock` |
+| `propose_administrator(address: znn.model.primitives.address.Address)` | AccountBlock builder | — | `AccountBlock` |
+| `set_additional_reward(znn_reward: int, qsr_reward: int)` | AccountBlock builder | — | `AccountBlock` |
+| `set_is_halted(is_halted: bool)` | AccountBlock builder | — | `AccountBlock` |
+| `set_token_tuple(token_standards: list, znn_percentages: list, qsr_percentages: list, min_amounts: list)` | AccountBlock builder | — | `AccountBlock` |
+| `unlock_liquidity_stake_entries(zts: znn.model.primitives.token_standard.TokenStandard)` | AccountBlock builder | — | `AccountBlock` |
+
+## PillarApi
+
+Pillar discovery, registration, delegation, rewards, and QSR management.
+
+Import: `znn.api.embedded.pillar.PillarApi`
+
+Constructor: `PillarApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `async get_deposited_qsr(pillar_address: znn.model.primitives.address.Address)` | RPC | `embedded.pillar.getDepositedQsr` | `decimal-string` |
+| `async get_uncollected_reward(pillar_address: znn.model.primitives.address.Address)` | RPC | `embedded.pillar.getUncollectedReward` | `UncollectedReward` |
+| `async get_frontier_reward_by_page(pillar_address: znn.model.primitives.address.Address, page_index=0, page_size=1024)` | RPC | `embedded.pillar.getFrontierRewardByPage` | `RewardHistoryList` |
+| `async get_qsr_registration_cost()` | RPC | `embedded.pillar.getQsrRegistrationCost` | `decimal-string` |
+| `async get_all(page_index=0, page_size=1024)` | RPC | `embedded.pillar.getAll` | `PillarInfoList` |
+| `async get_by_owner(pillar_address: znn.model.primitives.address.Address)` | RPC | `embedded.pillar.getByOwner` | `array` |
+| `async get_by_name(pillar_name: str)` | RPC | `embedded.pillar.getByName` | `PillarInfo or null` |
+| `async check_name_availability(name: str)` | RPC | `embedded.pillar.checkNameAvailability` | `boolean` |
+| `async get_delegated_pillar(pillar_address: znn.model.primitives.address.Address)` | RPC | `embedded.pillar.getDelegatedPillar` | `DelegationInfo or null` |
+| `async get_pillar_epoch_history(name: str, page_index=0, page_size=1024)` | RPC | `embedded.pillar.getPillarEpochHistory` | `PillarEpochHistoryList` |
+| `async get_pillars_history_by_epoch(epoch: int, page_index=0, page_size=1024)` | RPC | `embedded.pillar.getPillarsHistoryByEpoch` | `PillarEpochHistoryList` |
+| `register(name: str, producer_address: znn.model.primitives.address.Address, reward_address: znn.model.primitives.address.Address, give_block_reward_percentage: int = 0, give_delegate_reward_percentage: int = 100)` | AccountBlock builder | — | `AccountBlock` |
+| `register_legacy(name: str, producer_address: znn.model.primitives.address.Address, reward_address: znn.model.primitives.address.Address, public_key: str, signature: str, give_block_reward_percentage: int = 0, give_delegate_reward_percentage: int = 100)` | AccountBlock builder | — | `AccountBlock` |
+| `update_pillar(name: str, producer_address: znn.model.primitives.address.Address, reward_address: znn.model.primitives.address.Address, give_block_reward_percentage: int = 0, give_delegate_reward_percentage: int = 100)` | AccountBlock builder | — | `AccountBlock` |
+| `revoke(name: str)` | AccountBlock builder | — | `AccountBlock` |
+| `delegate(name: str)` | AccountBlock builder | — | `AccountBlock` |
+| `undelegate()` | AccountBlock builder | — | `AccountBlock` |
+| `collect_reward()` | AccountBlock builder | — | `AccountBlock` |
+| `deposit_qsr(amount: int)` | AccountBlock builder | — | `AccountBlock` |
+| `withdraw_qsr()` | AccountBlock builder | — | `AccountBlock` |
+
+## PlasmaApi
+
+Plasma state, fusion entries, PoW requirements, fuse, and cancel.
+
+Import: `znn.api.embedded.plasma.PlasmaApi`
+
+Constructor: `PlasmaApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `get_plasma_by_qsr(qsr_amount)` | Local calculation | — | `int` |
+| `async get(address: znn.model.primitives.address.Address)` | RPC | `embedded.plasma.get` | `PlasmaInfo` |
+| `async get_entries_by_address(address: znn.model.primitives.address.Address, page_index=0, page_size=1024)` | RPC | `embedded.plasma.getEntriesByAddress` | `FusionEntryList` |
+| `async get_required_fusion_amount(required_plasma: int)` | Removed compatibility stub | — | `Raises NotImplementedError` |
+| `async get_internal_required_pow_for_account_block(account_block: znn.model.nom.account_block.AccountBlock)` | RPC | `embedded.plasma.getRequiredPoWForAccountBlock` | `GetRequiredPowResponse` |
+| `async get_required_pow_for_account_block(pow_param)` | RPC | `embedded.plasma.getRequiredPoWForAccountBlock` | `GetRequiredPowResponse` |
+| `fuse(beneficiary: znn.model.primitives.address.Address, amount: int)` | AccountBlock builder | — | `AccountBlock` |
+| `cancel(hash_id: znn.model.primitives.hash.Hash)` | AccountBlock builder | — | `AccountBlock` |
+
+## SentinelApi
+
+Sentinel discovery, registration, rewards, and QSR management.
+
+Import: `znn.api.embedded.sentinel.SentinelApi`
+
+Constructor: `SentinelApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `async get_all_active(page_index=0, page_size=1024)` | RPC | `embedded.sentinel.getAllActive` | `SentinelInfoList` |
+| `async get_by_owner(address: znn.model.primitives.address.Address)` | RPC | `embedded.sentinel.getByOwner` | `SentinelInfo or null` |
+| `async get_deposited_qsr(address: znn.model.primitives.address.Address)` | RPC | `embedded.sentinel.getDepositedQsr` | `decimal-string` |
+| `async get_uncollected_reward(pillar_address: znn.model.primitives.address.Address)` | RPC | `embedded.sentinel.getUncollectedReward` | `UncollectedReward` |
+| `async get_frontier_reward_by_page(address: znn.model.primitives.address.Address, page_index=0, page_size=1024)` | RPC | `embedded.sentinel.getFrontierRewardByPage` | `RewardHistoryList` |
+| `register()` | AccountBlock builder | — | `AccountBlock` |
+| `revoke()` | AccountBlock builder | — | `AccountBlock` |
+| `collect_reward()` | AccountBlock builder | — | `AccountBlock` |
+| `deposit_qsr(amount: int)` | AccountBlock builder | — | `AccountBlock` |
+| `withdraw_qsr()` | AccountBlock builder | — | `AccountBlock` |
+
+## SporkApi
+
+Spork discovery, creation, and activation.
+
+Import: `znn.api.embedded.spork.SporkApi`
+
+Constructor: `SporkApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `async get_all(page_index=0, page_size=1024)` | RPC | `embedded.spork.getAll` | `SporkList` |
+| `activate_spork(id: znn.model.primitives.hash.Hash)` | AccountBlock builder | — | `AccountBlock` |
+| `create_spork(name: str, description: str)` | AccountBlock builder | — | `AccountBlock` |
+
+## StakeApi
+
+Stake entries, rewards, staking, cancellation, and collection.
+
+Import: `znn.api.embedded.stake.StakeApi`
+
+Constructor: `StakeApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `async get_entries_by_address(address: znn.model.primitives.address.Address, page_index=0, page_size=1024)` | RPC | `embedded.stake.getEntriesByAddress` | `StakeList` |
+| `async get_uncollected_reward(address: znn.model.primitives.address.Address)` | RPC | `embedded.stake.getUncollectedReward` | `UncollectedReward` |
+| `async get_frontier_reward_by_page(address: znn.model.primitives.address.Address, page_index=0, page_size=1024)` | RPC | `embedded.stake.getFrontierRewardByPage` | `RewardHistoryList` |
+| `stake(duration_in_sec: int, amount: int)` | AccountBlock builder | — | `AccountBlock` |
+| `cancel(hash_id: znn.model.primitives.hash.Hash)` | AccountBlock builder | — | `AccountBlock` |
+| `collect_reward()` | AccountBlock builder | — | `AccountBlock` |
+
+## SwapApi
+
+Swap assets, legacy pillars, and asset retrieval.
+
+Import: `znn.api.embedded.swap.SwapApi`
+
+Constructor: `SwapApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `async get_assets()` | RPC | `embedded.swap.getAssets` | `SwapAssetList` |
+| `async get_assets_by_key_id_hash(key_id_hash: str)` | RPC | `embedded.swap.getAssetsByKeyIdHash` | `SwapAssetEntry or null` |
+| `async get_legacy_pillars()` | RPC | `embedded.swap.getLegacyPillars` | `SwapLegacyPillarList` |
+| `retrieve_assets(public_key: str, signature: str)` | AccountBlock builder | — | `AccountBlock` |
+
+## TokenApi
+
+Token discovery, issuance, minting, burning, and updates.
+
+Import: `znn.api.embedded.token.TokenApi`
+
+Constructor: `TokenApi(ws_client=None)`
+
+| Python signature | Kind | Wire method | Declared result |
+| --- | --- | --- | --- |
+| `async get_all(page_index=0, page_size=1024)` | RPC | `embedded.token.getAll` | `TokenList` |
+| `async get_by_owner(address: znn.model.primitives.address.Address, page_index=0, page_size=1024)` | RPC | `embedded.token.getByOwner` | `TokenList` |
+| `async get_by_owner_address(address: znn.model.primitives.address.Address, page_index=0, page_size=1024)` | Compatibility alias | — | `Same as canonical method` |
+| `async get_by_zts(token_standard: znn.model.primitives.token_standard.TokenStandard)` | RPC | `embedded.token.getByZts` | `Token or null` |
+| `issue_token(token_name: str, token_symbol: str, token_domain: str, total_supply: int, max_supply: int, decimals: int, mintable: bool, burnable: bool, utility: bool)` | AccountBlock builder | — | `AccountBlock` |
+| `mint_token(token_standard: znn.model.primitives.token_standard.TokenStandard, amount: int, receive_address: znn.model.primitives.address.Address)` | AccountBlock builder | — | `AccountBlock` |
+| `burn_token(token_standard: znn.model.primitives.token_standard.TokenStandard, amount: int)` | AccountBlock builder | — | `AccountBlock` |
+| `update_token(token_standard: znn.model.primitives.token_standard.TokenStandard, owner_address: znn.model.primitives.address.Address, is_mintable: bool, is_burnable: bool)` | AccountBlock builder | — | `AccountBlock` |
+
+---
+
+Source: https://pyznn.0x3639.com/llms/model-reference.md
+Title: Complete model reference
+
+# Complete model reference
+
+> Generated by `tools/generate_documentation.py`. Do not edit this page by hand.
+
+Every table below is derived from the runtime model schema. `Required` describes strict runtime parsing. A dash means no declared default. RPC parsing may additionally require response-only AccountBlock fields.
+
+## AcceleratorProject
+
+Import: `znn.model.models.AcceleratorProject`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `id` | `id` | `string (hex-32)` | `Hash` | yes | `—` |
+| `name` | `name` | `string` | `str` | yes | `—` |
+| `description` | `description` | `string` | `str` | yes | `—` |
+| `url` | `url` | `string` | `str` | yes | `—` |
+| `znnFundsNeeded` | `znnFundsNeeded` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `qsrFundsNeeded` | `qsrFundsNeeded` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `creationTimestamp` | `creationTimestamp` | `number` | `int` | yes | `—` |
+| `statusInt` | `status` | `number` | `int` | yes | `—` |
+| `voteBreakdown` | `votes` | `model` | `VoteBreakdown` | yes | `—` |
+
+## AccountBlock
+
+Runtime class: `znn.model.nom.account_block.AccountBlock`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `version` | `version` | `number` | `int` | yes | `—` |
+| `chainIdentifier` | `chainIdentifier` | `number` | `int` | yes | `—` |
+| `blockType` | `blockType` | `number` | `int` | yes | `—` |
+| `hash` | `hash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `previousHash` | `previousHash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `height` | `height` | `number` | `int` | yes | `—` |
+| `momentumAcknowledged` | `momentumAcknowledged` | `model` | `HashHeight` | yes | `—` |
+| `address` | `address` | `string (bech32-address)` | `Address` | yes | `—` |
+| `toAddress` | `toAddress` | `string (bech32-address)` | `Address` | yes | `—` |
+| `amount` | `amount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `tokenStandard` | `tokenStandard` | `string (bech32-token-standard)` | `TokenStandard` | yes | `—` |
+| `fromBlockHash` | `fromBlockHash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `data` | `data` | `string (base64)` | `bytes` | yes | `—` |
+| `fusedPlasma` | `fusedPlasma` | `number` | `int` | yes | `—` |
+| `difficulty` | `difficulty` | `number` | `int` | yes | `—` |
+| `nonce` | `nonce` | `string` | `str` | yes | `—` |
+| `publicKey` | `publicKey` | `string (base64)` | `bytes` | yes | `—` |
+| `signature` | `signature` | `string (base64)` | `bytes` | yes | `—` |
+| `token` | `token` | `model` | `Token` | no | `—` |
+| `descendantBlocks` | `descendantBlocks` | `array` | `list[AccountBlock]` | yes | `—` |
+| `basePlasma` | `basePlasma` | `number` | `int` | yes | `—` |
+| `usedPlasma` | `usedPlasma` | `number` | `int` | yes | `—` |
+| `changesHash` | `changesHash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `confirmationDetail` | `confirmationDetail` | `model` | `AccountBlockConfirmationDetail` | no | `—` |
+| `pairedAccountBlock` | `pairedAccountBlock` | `model` | `AccountBlock` | no | `—` |
+
+## AccountBlockConfirmationDetail
+
+Import: `znn.model.models.AccountBlockConfirmationDetail`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `numConfirmations` | `numConfirmations` | `number` | `int` | yes | `—` |
+| `momentumHeight` | `momentumHeight` | `number` | `int` | yes | `—` |
+| `momentumHash` | `momentumHash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `momentumTimestamp` | `momentumTimestamp` | `number` | `int` | yes | `—` |
+
+## AccountBlockList
+
+Import: `znn.model.models.AccountBlockList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | no | `0` |
+| `list` | `list` | `array` | `list[AccountBlock]` | no | `[]` |
+| `more` | `more` | `boolean` | `bool` | no | `false` |
+
+## AccountBlockTemplate
+
+Import: `znn.model.models.AccountBlockTemplate`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `version` | `version` | `number` | `int` | yes | `—` |
+| `chainIdentifier` | `chainIdentifier` | `number` | `int` | yes | `—` |
+| `blockType` | `blockType` | `number` | `int` | yes | `—` |
+| `hash` | `hash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `previousHash` | `previousHash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `height` | `height` | `number` | `int` | yes | `—` |
+| `momentumAcknowledged` | `momentumAcknowledged` | `model` | `HashHeight` | yes | `—` |
+| `address` | `address` | `string (bech32-address)` | `Address` | yes | `—` |
+| `toAddress` | `toAddress` | `string (bech32-address)` | `Address` | yes | `—` |
+| `amount` | `amount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `tokenStandard` | `tokenStandard` | `string (bech32-token-standard)` | `TokenStandard` | yes | `—` |
+| `fromBlockHash` | `fromBlockHash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `data` | `data` | `string (base64)` | `bytes` | yes | `—` |
+| `fusedPlasma` | `fusedPlasma` | `number` | `int` | yes | `—` |
+| `difficulty` | `difficulty` | `number` | `int` | yes | `—` |
+| `nonce` | `nonce` | `string` | `str` | yes | `—` |
+| `publicKey` | `publicKey` | `string (base64)` | `bytes` | yes | `—` |
+| `signature` | `signature` | `string (base64)` | `bytes` | yes | `—` |
+
+## AccountHeader
+
+Import: `znn.model.models.AccountHeader`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `address` | `address` | `string (bech32-address)` | `Address` | yes | `—` |
+| `hash` | `hash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `height` | `height` | `number` | `int` | yes | `—` |
+
+## AccountInfo
+
+Import: `znn.model.models.AccountInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `address` | `address` | `string (bech32-address)` | `Address` | yes | `—` |
+| `blockCount` | `accountHeight` | `number` | `int` | no | `0` |
+| `balanceInfoMap` | `balanceInfoMap` | `object` | `dict[str, BalanceInfoListItem]` | no | `{}` |
+
+## Address
+
+Runtime class: `znn.model.primitives.address.Address`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `hrp` | `hrp` | `string` | `str` | yes | `—` |
+| `core` | `core` | `string (model-specific-binary)` | `str` | yes | `—` |
+
+## BalanceInfoListItem
+
+Import: `znn.model.models.BalanceInfoListItem`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `token` | `token` | `model` | `Token` | yes | `—` |
+| `balance` | `balance` | `decimal-string (base-10)` | `int` | yes | `—` |
+
+## BridgeInfo
+
+Import: `znn.model.models.BridgeInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `administrator` | `administrator` | `string (bech32-address)` | `Address` | yes | `—` |
+| `compressedTssECDSAPubKey` | `compressedTssECDSAPubKey` | `string` | `str` | yes | `—` |
+| `decompressedTssECDSAPubKey` | `decompressedTssECDSAPubKey` | `string` | `str` | yes | `—` |
+| `allowKeyGen` | `allowKeyGen` | `boolean` | `bool` | yes | `—` |
+| `halted` | `halted` | `boolean` | `bool` | yes | `—` |
+| `unhaltedAt` | `unhaltedAt` | `number` | `int` | yes | `—` |
+| `unhaltDurationInMomentums` | `unhaltDurationInMomentums` | `number` | `int` | yes | `—` |
+| `tssNonce` | `tssNonce` | `number` | `int` | yes | `—` |
+| `metadata` | `metadata` | `string` | `str` | yes | `—` |
+
+## BridgeNetworkInfo
+
+Import: `znn.model.models.BridgeNetworkInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `networkClass` | `networkClass` | `number` | `int` | yes | `—` |
+| `chainId` | `chainId` | `number` | `int` | yes | `—` |
+| `name` | `name` | `string` | `str` | yes | `—` |
+| `contractAddress` | `contractAddress` | `string` | `str` | yes | `—` |
+| `metadata` | `metadata` | `string` | `str` | yes | `—` |
+| `tokenPairs` | `tokenPairs` | `array` | `list[TokenPair]` | yes | `—` |
+
+## BridgeNetworkInfoList
+
+Import: `znn.model.models.BridgeNetworkInfoList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | yes | `—` |
+| `list` | `list` | `array` | `list[BridgeNetworkInfo]` | yes | `—` |
+
+## DelegationInfo
+
+Import: `znn.model.models.DelegationInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `name` | `name` | `string` | `str` | yes | `—` |
+| `status` | `status` | `number` | `int` | yes | `—` |
+| `weight` | `weight` | `decimal-string (base-10)` | `int` | yes | `—` |
+
+## DetailedMomentum
+
+Import: `znn.model.models.DetailedMomentum`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `blocks` | `blocks` | `array` | `list[AccountBlock]` | no | `[]` |
+| `momentum` | `momentum` | `model` | `Momentum` | yes | `—` |
+
+## DetailedMomentumList
+
+Import: `znn.model.models.DetailedMomentumList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | no | `0` |
+| `list` | `list` | `array` | `list[DetailedMomentum]` | no | `[]` |
+
+## FusionEntry
+
+Import: `znn.model.models.FusionEntry`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `qsrAmount` | `qsrAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `beneficiary` | `beneficiary` | `string (bech32-address)` | `Address` | yes | `—` |
+| `expirationHeight` | `expirationHeight` | `number` | `int` | yes | `—` |
+| `id` | `id` | `string (hex-32)` | `Hash` | yes | `—` |
+
+## FusionEntryList
+
+Import: `znn.model.models.FusionEntryList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `qsrAmount` | `qsrAmount` | `decimal-string (base-10)` | `int` | no | `0n` |
+| `count` | `count` | `number` | `int` | no | `0` |
+| `list` | `list` | `array` | `list[FusionEntry]` | no | `[]` |
+
+## GetRequiredPowParam
+
+Import: `znn.model.models.GetRequiredPowParam`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `address` | `address` | `string (bech32-address)` | `Address` | yes | `—` |
+| `blockType` | `blockType` | `number` | `int` | yes | `—` |
+| `toAddress` | `toAddress` | `string (bech32-address)` | `Address` | no | `undefined` |
+| `data` | `data` | `string (base64)` | `bytes` | no | `undefined` |
+
+## GetRequiredPowResponse
+
+Import: `znn.model.models.GetRequiredPowResponse`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `availablePlasma` | `availablePlasma` | `number` | `int` | yes | `—` |
+| `basePlasma` | `basePlasma` | `number` | `int` | yes | `—` |
+| `requiredDifficulty` | `requiredDifficulty` | `number` | `int` | yes | `—` |
+
+## Hash
+
+Runtime class: `znn.model.primitives.hash.Hash`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `core` | `core` | `string (model-specific-binary)` | `str` | yes | `—` |
+
+## HashHeight
+
+Runtime class: `znn.model.primitives.hash_height.HashHeight`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `hash` | `hash` | `string (hex-32)` | `Hash` | no | `EMPTY_HASH` |
+| `height` | `height` | `number` | `int` | yes | `—` |
+
+## HtlcInfo
+
+Import: `znn.model.models.HtlcInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `id` | `id` | `string (hex-32)` | `Hash` | yes | `—` |
+| `timeLocked` | `timeLocked` | `string (bech32-address)` | `Address` | yes | `—` |
+| `hashLocked` | `hashLocked` | `string (bech32-address)` | `Address` | yes | `—` |
+| `tokenStandard` | `tokenStandard` | `string (bech32-token-standard)` | `TokenStandard` | yes | `—` |
+| `amount` | `amount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `expirationTime` | `expirationTime` | `number` | `int` | yes | `—` |
+| `hashType` | `hashType` | `number` | `int` | yes | `—` |
+| `keyMaxSize` | `keyMaxSize` | `number` | `int` | yes | `—` |
+| `hashLock` | `hashLock` | `string (base64)` | `bytes` | yes | `—` |
+
+## LiquidityInfo
+
+Import: `znn.model.models.LiquidityInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `administrator` | `administrator` | `string (bech32-address)` | `Address` | yes | `—` |
+| `isHalted` | `isHalted` | `boolean` | `bool` | yes | `—` |
+| `znnReward` | `znnReward` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `qsrReward` | `qsrReward` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `tokenTuples` | `tokenTuples` | `array` | `list[TokenTuple]` | yes | `—` |
+
+## LiquidityStakeEntry
+
+Import: `znn.model.models.LiquidityStakeEntry`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `amount` | `amount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `tokenStandard` | `tokenStandard` | `string (bech32-token-standard)` | `TokenStandard` | yes | `—` |
+| `weightedAmount` | `weightedAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `startTime` | `startTime` | `number` | `int` | yes | `—` |
+| `revokeTime` | `revokeTime` | `number` | `int` | yes | `—` |
+| `expirationTime` | `expirationTime` | `number` | `int` | yes | `—` |
+| `stakeAddress` | `stakeAddress` | `string (bech32-address)` | `Address` | yes | `—` |
+| `id` | `id` | `string (hex-32)` | `Hash` | yes | `—` |
+
+## LiquidityStakeList
+
+Import: `znn.model.models.LiquidityStakeList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `totalAmount` | `totalAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `totalWeightedAmount` | `totalWeightedAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `count` | `count` | `number` | `int` | yes | `—` |
+| `list` | `list` | `array` | `list[LiquidityStakeEntry]` | yes | `—` |
+
+## Model
+
+Import: `znn.model.models.Model`
+
+This primitive has a custom validated wire representation.
+
+## Momentum
+
+Import: `znn.model.models.Momentum`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `version` | `version` | `number` | `int` | yes | `—` |
+| `chainIdentifier` | `chainIdentifier` | `number` | `int` | yes | `—` |
+| `hash` | `hash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `previousHash` | `previousHash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `height` | `height` | `number` | `int` | yes | `—` |
+| `timestamp` | `timestamp` | `number` | `int` | yes | `—` |
+| `data` | `data` | `string (base64)` | `bytes` | yes | `—` |
+| `content` | `content` | `array` | `list[AccountHeader]` | yes | `—` |
+| `changesHash` | `changesHash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `publicKey` | `publicKey` | `string (base64)` | `bytes` | yes | `—` |
+| `signature` | `signature` | `string (base64)` | `bytes` | yes | `—` |
+| `producer` | `producer` | `string (bech32-address)` | `Address` | yes | `—` |
+
+## MomentumList
+
+Import: `znn.model.models.MomentumList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | no | `0` |
+| `list` | `list` | `array` | `list[Momentum]` | no | `[]` |
+
+## NetworkInfo
+
+Import: `znn.model.models.NetworkInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `numPeers` | `numPeers` | `number` | `int` | yes | `—` |
+| `self` | `self` | `model` | `Peer` | yes | `—` |
+| `peers` | `peers` | `array` | `list[Peer]` | yes | `—` |
+
+## OrchestratorInfo
+
+Import: `znn.model.models.OrchestratorInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `windowSize` | `windowSize` | `number` | `int` | yes | `—` |
+| `keyGenThreshold` | `keyGenThreshold` | `number` | `int` | yes | `—` |
+| `confirmationsToFinality` | `confirmationsToFinality` | `number` | `int` | yes | `—` |
+| `estimatedMomentumTime` | `estimatedMomentumTime` | `number` | `int` | yes | `—` |
+| `allowKeyGenHeight` | `allowKeyGenHeight` | `number` | `int` | yes | `—` |
+
+## OsInfo
+
+Import: `znn.model.models.OsInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `os` | `os` | `string` | `str` | yes | `—` |
+| `platform` | `platform` | `string` | `str` | yes | `—` |
+| `platformFamily` | `platformFamily` | `string` | `str` | yes | `—` |
+| `platformVersion` | `platformVersion` | `string` | `str` | yes | `—` |
+| `kernelVersion` | `kernelVersion` | `string` | `str` | yes | `—` |
+| `memoryTotal` | `memoryTotal` | `number` | `int` | yes | `—` |
+| `memoryFree` | `memoryFree` | `number` | `int` | yes | `—` |
+| `numCPU` | `numCPU` | `number` | `int` | yes | `—` |
+| `numGoroutine` | `numGoroutine` | `number` | `int` | yes | `—` |
+
+## Peer
+
+Import: `znn.model.models.Peer`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `publicKey` | `publicKey` | `string` | `str` | yes | `—` |
+| `ip` | `ip` | `string` | `str` | yes | `—` |
+
+## Phase
+
+Import: `znn.model.models.Phase`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `projectId` | `phase.projectID` | `string (hex-32)` | `Hash` | yes | `—` |
+| `acceptedTimestamp` | `phase.acceptedTimestamp` | `number` | `int` | yes | `—` |
+
+## PillarEpochHistory
+
+Import: `znn.model.models.PillarEpochHistory`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `name` | `name` | `string` | `str` | yes | `—` |
+| `epoch` | `epoch` | `number` | `int` | yes | `—` |
+| `giveBlockRewardPercentage` | `giveBlockRewardPercentage` | `number` | `int` | yes | `—` |
+| `giveDelegateRewardPercentage` | `giveDelegateRewardPercentage` | `number` | `int` | yes | `—` |
+| `producedBlockNum` | `producedBlockNum` | `number` | `int` | yes | `—` |
+| `expectedBlockNum` | `expectedBlockNum` | `number` | `int` | yes | `—` |
+| `weight` | `weight` | `decimal-string (base-10)` | `int` | yes | `—` |
+
+## PillarEpochHistoryList
+
+Import: `znn.model.models.PillarEpochHistoryList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | yes | `—` |
+| `list` | `list` | `array` | `list[PillarEpochHistory]` | yes | `—` |
+
+## PillarEpochStats
+
+Import: `znn.model.models.PillarEpochStats`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `producedMomentums` | `producedMomentums` | `number` | `int` | yes | `—` |
+| `expectedMomentums` | `expectedMomentums` | `number` | `int` | yes | `—` |
+
+## PillarInfo
+
+Import: `znn.model.models.PillarInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `name` | `name` | `string` | `str` | yes | `—` |
+| `rank` | `rank` | `number` | `int` | yes | `—` |
+| `type` | `type` | `number` | `int` | yes | `—` |
+| `ownerAddress` | `ownerAddress` | `string (bech32-address)` | `Address` | yes | `—` |
+| `producerAddress` | `producerAddress` | `string (bech32-address)` | `Address` | yes | `—` |
+| `withdrawAddress` | `withdrawAddress` | `string (bech32-address)` | `Address` | yes | `—` |
+| `giveMomentumRewardPercentage` | `giveMomentumRewardPercentage` | `number` | `int` | yes | `—` |
+| `giveDelegateRewardPercentage` | `giveDelegateRewardPercentage` | `number` | `int` | yes | `—` |
+| `isRevocable` | `isRevocable` | `boolean` | `bool` | yes | `—` |
+| `revokeCooldown` | `revokeCooldown` | `number` | `int` | yes | `—` |
+| `revokeTimestamp` | `revokeTimestamp` | `number` | `int` | yes | `—` |
+| `currentStats` | `currentStats` | `model` | `PillarEpochStats` | yes | `—` |
+| `weight` | `weight` | `decimal-string (base-10)` | `int` | yes | `—` |
+
+## PillarInfoList
+
+Import: `znn.model.models.PillarInfoList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | yes | `—` |
+| `list` | `list` | `array` | `list[PillarInfo]` | yes | `—` |
+
+## PillarVote
+
+Import: `znn.model.models.PillarVote`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `id` | `id` | `string (hex-32)` | `Hash` | yes | `—` |
+| `name` | `name` | `string` | `str` | yes | `—` |
+| `vote` | `vote` | `number` | `int` | yes | `—` |
+
+## PlasmaInfo
+
+Import: `znn.model.models.PlasmaInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `currentPlasma` | `currentPlasma` | `number` | `int` | yes | `—` |
+| `maxPlasma` | `maxPlasma` | `number` | `int` | yes | `—` |
+| `qsrAmount` | `qsrAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+
+## ProcessInfo
+
+Import: `znn.model.models.ProcessInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `commit` | `commit` | `string` | `str` | yes | `—` |
+| `version` | `version` | `string` | `str` | yes | `—` |
+
+## Project
+
+Import: `znn.model.models.Project`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `owner` | `owner` | `string (bech32-address)` | `Address` | yes | `—` |
+| `lastUpdateTimestamp` | `lastUpdateTimestamp` | `number` | `int` | yes | `—` |
+| `phaseIds` | `phaseIds` | `array` | `list[Hash]` | yes | `—` |
+| `phases` | `phases` | `array` | `list[Phase]` | yes | `—` |
+
+## ProjectList
+
+Import: `znn.model.models.ProjectList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | yes | `—` |
+| `list` | `list` | `array` | `list[Project]` | yes | `—` |
+
+## RewardDeposit
+
+Import: `znn.model.models.RewardDeposit`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `address` | `address` | `string (bech32-address)` | `Address` | yes | `—` |
+| `znnAmount` | `znnAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `qsrAmount` | `qsrAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+
+## RewardHistoryEntry
+
+Import: `znn.model.models.RewardHistoryEntry`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `epoch` | `epoch` | `number` | `int` | yes | `—` |
+| `znnAmount` | `znnAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `qsrAmount` | `qsrAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+
+## RewardHistoryList
+
+Import: `znn.model.models.RewardHistoryList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | yes | `—` |
+| `list` | `list` | `array` | `list[RewardHistoryEntry]` | yes | `—` |
+
+## SecurityInfo
+
+Import: `znn.model.models.SecurityInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `guardians` | `guardians` | `array` | `list[Address]` | yes | `—` |
+| `guardiansVotes` | `guardiansVotes` | `array` | `list[Address]` | yes | `—` |
+| `administratorDelay` | `administratorDelay` | `number` | `int` | yes | `—` |
+| `softDelay` | `softDelay` | `number` | `int` | yes | `—` |
+
+## SentinelInfo
+
+Import: `znn.model.models.SentinelInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `owner` | `owner` | `string (bech32-address)` | `Address` | yes | `—` |
+| `registrationTimestamp` | `registrationTimestamp` | `number` | `int` | yes | `—` |
+| `isRevocable` | `isRevocable` | `boolean` | `bool` | yes | `—` |
+| `revokeCooldown` | `revokeCooldown` | `number` | `int` | yes | `—` |
+| `active` | `active` | `boolean` | `bool` | yes | `—` |
+
+## SentinelInfoList
+
+Import: `znn.model.models.SentinelInfoList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | yes | `—` |
+| `list` | `list` | `array` | `list[SentinelInfo]` | yes | `—` |
+
+## Spork
+
+Import: `znn.model.models.Spork`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `id` | `id` | `string (hex-32)` | `Hash` | yes | `—` |
+| `name` | `name` | `string` | `str` | yes | `—` |
+| `description` | `description` | `string` | `str` | yes | `—` |
+| `activated` | `activated` | `boolean` | `bool` | yes | `—` |
+| `enforcementHeight` | `enforcementHeight` | `number` | `int` | yes | `—` |
+
+## SporkList
+
+Import: `znn.model.models.SporkList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | yes | `—` |
+| `list` | `list` | `array` | `list[Spork]` | yes | `—` |
+
+## StakeEntry
+
+Import: `znn.model.models.StakeEntry`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `amount` | `amount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `weightedAmount` | `weightedAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `startTimestamp` | `startTimestamp` | `number` | `int` | yes | `—` |
+| `expirationTimestamp` | `expirationTimestamp` | `number` | `int` | yes | `—` |
+| `address` | `address` | `string (bech32-address)` | `Address` | yes | `—` |
+| `id` | `id` | `string (hex-32)` | `Hash` | yes | `—` |
+
+## StakeList
+
+Import: `znn.model.models.StakeList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `totalAmount` | `totalAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `totalWeightedAmount` | `totalWeightedAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `count` | `count` | `number` | `int` | yes | `—` |
+| `list` | `list` | `array` | `list[StakeEntry]` | yes | `—` |
+
+## SwapAssetEntry
+
+Import: `znn.model.models.SwapAssetEntry`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `keyIdHash` | `keyIdHash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `qsr` | `qsr` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `znn` | `znn` | `decimal-string (base-10)` | `int` | yes | `—` |
+
+## SwapAssetList
+
+Import: `znn.model.models.SwapAssetList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `list` | `list` | `object` | `dict[str, SwapAssetEntry]` | no | `{}` |
+
+## SwapLegacyPillarEntry
+
+Import: `znn.model.models.SwapLegacyPillarEntry`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `numPillars` | `numPillars` | `number` | `int` | yes | `—` |
+| `keyIdHash` | `keyIdHash` | `string (hex-32)` | `Hash` | yes | `—` |
+
+## SwapLegacyPillarList
+
+Import: `znn.model.models.SwapLegacyPillarList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `list` | `` | `array` | `list[SwapLegacyPillarEntry]` | no | `[]` |
+
+## SyncInfo
+
+Import: `znn.model.models.SyncInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `state` | `state` | `model` | `SyncState` | yes | `—` |
+| `currentHeight` | `currentHeight` | `number` | `int` | yes | `—` |
+| `targetHeight` | `targetHeight` | `number` | `int` | yes | `—` |
+
+## TimeChallengeInfo
+
+Import: `znn.model.models.TimeChallengeInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `methodName` | `MethodName` | `string` | `str` | yes | `—` |
+| `paramsHash` | `ParamsHash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `challengeStartHeight` | `ChallengeStartHeight` | `number` | `int` | yes | `—` |
+
+## TimeChallengesList
+
+Import: `znn.model.models.TimeChallengesList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | yes | `—` |
+| `list` | `list` | `array` | `list[TimeChallengeInfo]` | yes | `—` |
+
+## Token
+
+Import: `znn.model.models.Token`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `name` | `name` | `string` | `str` | yes | `—` |
+| `symbol` | `symbol` | `string` | `str` | yes | `—` |
+| `domain` | `domain` | `string` | `str` | yes | `—` |
+| `totalSupply` | `totalSupply` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `decimals` | `decimals` | `number` | `int` | yes | `—` |
+| `owner` | `owner` | `string (bech32-address)` | `Address` | yes | `—` |
+| `tokenStandard` | `tokenStandard` | `string (bech32-token-standard)` | `TokenStandard` | yes | `—` |
+| `maxSupply` | `maxSupply` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `isBurnable` | `isBurnable` | `boolean` | `bool` | yes | `—` |
+| `isMintable` | `isMintable` | `boolean` | `bool` | yes | `—` |
+| `isUtility` | `isUtility` | `boolean` | `bool` | yes | `—` |
+
+## TokenList
+
+Import: `znn.model.models.TokenList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | yes | `—` |
+| `list` | `list` | `array` | `list[Token]` | yes | `—` |
+
+## TokenPair
+
+Import: `znn.model.models.TokenPair`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `tokenStandard` | `tokenStandard` | `string (bech32-token-standard)` | `TokenStandard` | yes | `—` |
+| `tokenAddress` | `tokenAddress` | `string` | `str` | yes | `—` |
+| `bridgeable` | `bridgeable` | `boolean` | `bool` | yes | `—` |
+| `redeemable` | `redeemable` | `boolean` | `bool` | yes | `—` |
+| `owned` | `owned` | `boolean` | `bool` | yes | `—` |
+| `minAmount` | `minAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `feePercentage` | `feePercentage` | `number` | `int` | yes | `—` |
+| `redeemDelay` | `redeemDelay` | `number` | `int` | yes | `—` |
+| `metadata` | `metadata` | `string` | `str` | yes | `—` |
+
+## TokenStandard
+
+Runtime class: `znn.model.primitives.token_standard.TokenStandard`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `core` | `core` | `string (model-specific-binary)` | `str` | yes | `—` |
+
+## TokenTuple
+
+Import: `znn.model.models.TokenTuple`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `tokenStandard` | `tokenStandard` | `string (bech32-token-standard)` | `TokenStandard` | yes | `—` |
+| `znnPercentage` | `znnPercentage` | `number` | `int` | yes | `—` |
+| `qsrPercentage` | `qsrPercentage` | `number` | `int` | yes | `—` |
+| `minAmount` | `minAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+
+## UncollectedReward
+
+Import: `znn.model.models.UncollectedReward`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `address` | `address` | `string (bech32-address)` | `Address` | yes | `—` |
+| `znnAmount` | `znnAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `qsrAmount` | `qsrAmount` | `decimal-string (base-10)` | `int` | yes | `—` |
+
+## UnwrapTokenRequest
+
+Import: `znn.model.models.UnwrapTokenRequest`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `registrationMomentumHeight` | `registrationMomentumHeight` | `number` | `int` | yes | `—` |
+| `networkClass` | `networkClass` | `number` | `int` | yes | `—` |
+| `chainId` | `chainId` | `number` | `int` | yes | `—` |
+| `transactionHash` | `transactionHash` | `string (hex-32)` | `Hash` | yes | `—` |
+| `logIndex` | `logIndex` | `number` | `int` | yes | `—` |
+| `toAddress` | `toAddress` | `string (bech32-address)` | `Address` | yes | `—` |
+| `tokenAddress` | `tokenAddress` | `string` | `str` | yes | `—` |
+| `tokenStandard` | `tokenStandard` | `string (bech32-token-standard)` | `TokenStandard` | yes | `—` |
+| `amount` | `amount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `signature` | `signature` | `string` | `str` | yes | `—` |
+| `redeemed` | `redeemed` | `number` | `int` | yes | `—` |
+| `revoked` | `revoked` | `number` | `int` | yes | `—` |
+| `redeemableIn` | `redeemableIn` | `number` | `int` | yes | `—` |
+
+## UnwrapTokenRequestList
+
+Import: `znn.model.models.UnwrapTokenRequestList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | yes | `—` |
+| `list` | `list` | `array` | `list[UnwrapTokenRequest]` | yes | `—` |
+
+## VoteBreakdown
+
+Import: `znn.model.models.VoteBreakdown`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `id` | `id` | `string (hex-32)` | `Hash` | yes | `—` |
+| `yes` | `yes` | `number` | `int` | yes | `—` |
+| `no` | `no` | `number` | `int` | yes | `—` |
+| `total` | `total` | `number` | `int` | yes | `—` |
+
+## WrapTokenRequest
+
+Import: `znn.model.models.WrapTokenRequest`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `networkClass` | `networkClass` | `number` | `int` | yes | `—` |
+| `chainId` | `chainId` | `number` | `int` | yes | `—` |
+| `id` | `id` | `string (hex-32)` | `Hash` | yes | `—` |
+| `toAddress` | `toAddress` | `string` | `str` | yes | `—` |
+| `tokenStandard` | `tokenStandard` | `string (bech32-token-standard)` | `TokenStandard` | yes | `—` |
+| `tokenAddress` | `tokenAddress` | `string` | `str` | yes | `—` |
+| `amount` | `amount` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `fee` | `fee` | `decimal-string (base-10)` | `int` | yes | `—` |
+| `signature` | `signature` | `string` | `str` | yes | `—` |
+| `creationMomentumHeight` | `creationMomentumHeight` | `number` | `int` | yes | `—` |
+| `confirmationsToFinality` | `confirmationsToFinality` | `number` | `int` | yes | `—` |
+
+## WrapTokenRequestList
+
+Import: `znn.model.models.WrapTokenRequestList`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `count` | `count` | `number` | `int` | yes | `—` |
+| `list` | `list` | `array` | `list[WrapTokenRequest]` | yes | `—` |
+
+## ZtsFeesInfo
+
+Import: `znn.model.models.ZtsFeesInfo`
+
+| Python attribute | Wire key | Wire type | Decoded Python type | Required | Default |
+| --- | --- | --- | --- | --- | --- |
+| `tokenStandard` | `tokenStandard` | `string (bech32-token-standard)` | `TokenStandard` | yes | `—` |
+| `accumulatedFee` | `accumulatedFee` | `decimal-string (base-10)` | `int` | yes | `—` |
+
+# Enum reference
+
+## AcceleratorProjectStatus
+
+`voting=0`, `active=1`, `paid=2`, `closed=3`, `completed=4`
+
+## AcceleratorProjectVote
+
+`yes=0`, `no=1`, `abstain=2`
+
+## BlockTypeEnum
+
+`Unknown=0`, `GenesisReceive=1`, `UserSend=2`, `UserReceive=3`, `ContractSend=4`, `ContractReceive=5`
+
+## ReceiveBlockTypeEnum
+
+`GenesisReceive=1`, `UserReceive=3`, `ContractReceive=5`
+
+## SendBlockTypeEnum
+
+`UserSend=2`, `ContractSend=4`
+
+## SyncState
+
+`Unknown=0`, `Syncing=1`, `SyncDone=2`, `NotEnoughPeers=3`
+
+---
+
+Source: https://pyznn.0x3639.com/llms/contributing.md
+Title: Contributing
+
+# Contributing
+
+## Python development setup
+
+PyZNN requires Python 3.12 or newer.
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+pre-commit install
+```
+
+No live Zenon node is needed for development or CI. For the complete vectors and
+transport fixture, clone the stable specification at the revision pinned in
+`.github/workflows/ci.yml`:
+
+```bash
+git clone https://github.com/0x3639/zenon-sdk-spec.git ../zenon-sdk-spec
+git -C ../zenon-sdk-spec checkout 69f2ecf955bafa4037c73f4b858619ef834e738b
+```
+
+## Required checks
+
+Run the same substantive checks as CI:
+
+```bash
+python -m compileall -q znn tests
+ruff check --select E9,F63,F7,F82 znn tests
+
+ZNN_SPEC_ROOT=../zenon-sdk-spec \
+  python -m coverage run -m pytest -q
+python -m coverage report
+
+python -m znn.conformance \
+  ../zenon-sdk-spec/conformance/vectors \
+  --output znn-sdk-results.json
+python ../zenon-sdk-spec/tools/znn_spec.py \
+  check-results znn-sdk-results.json
+python ../zenon-sdk-spec/tools/znn_spec.py \
+  check-manifest conformance/manifest.json
+```
+
+Coverage is branch-enabled and must remain at or above the configured 95.00%
+combined floor. Tests and vectors must remain deterministic and offline; use
+fakes or the specification's localhost fixture rather than a node.
+
+## Generated files
+
+`znn/model/models.py` and `znn/api/_response.py` are generated from the pinned
+stable specification:
+
+```bash
+python tools/generate_models.py \
+  ../zenon-sdk-spec/spec/models.json \
+  --output /tmp/models.py
+diff -u znn/model/models.py /tmp/models.py
+
+python tools/generate_rpc_responses.py \
+  ../zenon-sdk-spec/spec/rpc.json \
+  --output /tmp/rpc_response.py
+diff -u znn/api/_response.py /tmp/rpc_response.py
+```
+
+Do not hand-edit generated inventories. Update the generator, regenerate, and
+verify byte-for-byte output instead.
+
+## Documentation site
+
+The Docusaurus site lives in `documentation/website`.
+
+Regenerate the exact API/model references and LLM-readable artifacts first:
+
+```bash
+python tools/generate_documentation.py
+python tools/generate_documentation.py --check
+```
+
+```bash
+cd documentation/website
+npm install
+npm run start
+```
+
+Before opening a pull request, run the production build so broken internal
+links, invalid front matter, and MDX errors fail locally:
+
+```bash
+npm run build
+```
+
+The production build also creates the local full-text search index. Use
+`npm run serve` after a build when testing search locally.
+
+After changes reach `master`, `.github/workflows/pages.yml` repeats the clean
+production build and deploys its output through GitHub Pages. Repository Pages
+settings must use **GitHub Actions** as the deployment source.
+
+Keep examples explicit about endpoint trust, avoid embedding live public-node
+addresses, and ensure snippets match the current Python signatures.
+
+## Pull requests
+
+- Work from a focused feature branch.
+- Add offline regression coverage for behavior changes.
+- Update the capability manifest when the stable surface changes.
+- Regenerate model or RPC inventories when their specification inputs change.
+- Update both the root README and Docusaurus guides when user-facing behavior
+  changes.
+- Regenerate and check the API reference, model reference, Markdown mirrors,
+  `llms.txt`, and `llms-full.txt`.
+- Include the complete verification results in the pull-request description.
+
+---
+
+Source: https://pyznn.0x3639.com/llms/llm-access.md
+Title: LLM and agent access
+
+# LLM and agent access
+
+PyZNN publishes the same authoritative documentation in human-readable
+Docusaurus pages and clean Markdown artifacts for language models, coding
+agents, retrieval pipelines, and offline indexing.
+
+## Machine-readable endpoints
+
+| Endpoint | Purpose |
+| --- | --- |
+| `https://pyznn.0x3639.com/llms.txt` | Concise project summary and categorized Markdown link map |
+| `https://pyznn.0x3639.com/llms-full.txt` | Complete documentation corpus in sidebar reading order |
+| `https://pyznn.0x3639.com/llms/{page}.md` | Clean Markdown mirror of one documentation page |
+| `https://github.com/0x3639/znn-sdk-py` | Canonical source repository |
+
+The root `llms.txt` follows the proposed `llms.txt` structure: one project H1, a
+summary blockquote, concise interpretation guidance, categorized link lists,
+and an `Optional` section for lower-priority context.
+
+## Which artifact to retrieve
+
+| Task | Best input |
+| --- | --- |
+| Orient to the project and choose relevant pages | `llms.txt` |
+| Answer one focused implementation question | The linked page Markdown |
+| Build a broad retrieval index | All files under `/llms/` |
+| Supply one large context to a capable model | `llms-full.txt` |
+| Verify an exact implementation detail | Repository source plus the generated reference |
+
+Prefer the smallest authoritative context that answers the question. The full
+corpus is intentionally comprehensive and may be unnecessary for a single API
+call.
+
+## Authority order
+
+When two sources appear to disagree, use this order:
+
+1. current Python source and generated runtime inventories;
+2. the pinned stable `zenon-sdk-spec` revision named in CI;
+3. generated API and model references;
+4. conceptual guides and cookbook examples;
+5. historical compatibility behavior.
+
+The generated references and LLM artifacts are checked for staleness with:
+
+```bash
+python3.12 tools/generate_documentation.py --check
+```
+
+## Facts code-generating agents must preserve
+
+- Python 3.12 or newer is required.
+- No public third-party node is configured by default.
+- Use `HttpClient` for request/response RPC and `WsClient` for subscriptions.
+- API facades send canonical positional parameters and parse typed results.
+- Token amounts passed to transactions and builders are integer base units.
+- Use `znn.amount` with strings or `Decimal` for display conversion; avoid
+  binary floating point.
+- Embedded builder methods return unsigned `AccountBlock` objects and perform no
+  I/O.
+- Transaction preparation and publication are distinct operations.
+- Account-block signatures cover the raw canonical 32-byte hash.
+- A custom PoW provider's nonce is verified locally before signing.
+- Canonical publication success is JSON `null`.
+- Subscriptions are async iterators over normalized individual updates.
+- In-flight requests fail on connection loss; the client does not silently
+  replay them.
+- The removed `embedded.plasma.getRequiredFusionAmount` RPC must not be called.
+- Tests and conformance verification do not require a live Zenon node.
+
+## Retrieval-friendly page structure
+
+Each conceptual page provides:
+
+- a unique H1 and descriptive front matter;
+- explicit imports and complete Python blocks;
+- input and environment requirements before online examples;
+- result types and error behavior after examples;
+- stable cross-links to detailed references;
+- terms written out before abbreviations where practical.
+
+Generated references provide exact method signatures, wire method names,
+declared result types, model wire keys, Python attributes, required flags,
+defaults, and enum values.
+
+## Suggested coding-agent prompt
+
+```text
+Use https://pyznn.0x3639.com/llms.txt to select the minimum relevant PyZNN
+documentation. Verify every method signature and model field against the linked
+generated reference. Write Python 3.12+ async code, use an explicit trusted node
+URL from configuration, preserve typed model parsing, use integer base units,
+and close the client in finally. Do not invent RPC methods, model fields,
+defaults, public nodes, or automatic retries for transaction publication.
+```
+
+## Suggested review-agent prompt
+
+```text
+Review this PyZNN code against https://pyznn.0x3639.com/llms-full.txt and the
+current repository source. Check endpoint trust, request positional order,
+nullable results, strict model fields, base-unit amounts, account-block hashing
+and signing, PoW verification, publication null semantics, subscription cleanup,
+and TransportError versus JsonRpcError handling. Report only actionable
+discrepancies with exact source or documentation references.
+```
+
+## Suggested retrieval chunks
+
+For retrieval-augmented generation, split at H1/H2 headings and retain:
+
+- the page title;
+- source URL;
+- nearest parent headings;
+- fenced code language;
+- tables as complete units rather than individual rows.
+
+Do not split a code block from the paragraph that names its required environment
+variables, result type, or failure semantics.
+
+## Generated-file policy
+
+Authoritative edits belong in `documentation/website/docs`. Do not hand-edit:
+
+- `docs/api-reference.md`;
+- `docs/model-reference.md`;
+- `static/llms.txt`;
+- `static/llms-full.txt`; or
+- `static/llms/*.md`.
+
+Regenerate them with `tools/generate_documentation.py`, build the site, and run
+the generator in `--check` mode before committing.
+
+## Search
+
+The site includes local full-text search for documentation and regular pages.
+The index is generated at build time and loaded by the browser. Search queries
+do not require Algolia credentials and are not sent to an external search
+service.

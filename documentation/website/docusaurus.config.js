@@ -1,23 +1,28 @@
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
-const lightCodeTheme = require("prism-react-renderer/themes/github");
-const darkCodeTheme = require("prism-react-renderer/themes/dracula");
+const {themes} = require("prism-react-renderer");
+const lightCodeTheme = themes.github;
+const darkCodeTheme = themes.dracula;
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: "PyZNN Docs",
-  tagline: "Python SDK for interacting with the Zenon network and ecosystem.",
-  url: "https://xandrv.github.io",
-  baseUrl: "/pyznn/",
+  title: "PyZNN",
+  tagline: "Stable, typed Python SDK for the Zenon Network of Momentum.",
+  url: "https://pyznn.0x3639.com",
+  baseUrl: "/",
   onBrokenLinks: "throw",
-  onBrokenMarkdownLinks: "warn",
   favicon: "img/favicon.ico",
+  markdown: {
+    hooks: {
+      onBrokenMarkdownLinks: "warn",
+    },
+  },
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: "xandrv", // Usually your GitHub org/user name.
-  projectName: "pyznn", // Usually your repo name.
+  organizationName: "0x3639",
+  projectName: "znn-sdk-py",
 
   // Even if you don't use internalization, you can use this field to set useful
   // metadata like html lang. For example, if your site is Chinese, you may want
@@ -34,15 +39,26 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
           editUrl:
-            "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/",
+            "https://github.com/0x3639/znn-sdk-py/edit/master/documentation/website/",
         },
         theme: {
           customCss: require.resolve("./src/css/custom.css"),
         },
       }),
+    ],
+  ],
+
+  themes: [
+    [
+      require.resolve("@easyops-cn/docusaurus-search-local"),
+      {
+        hashed: true,
+        language: ["en"],
+        indexDocs: true,
+        indexBlog: false,
+        indexPages: true,
+      },
     ],
   ],
 
@@ -63,7 +79,7 @@ const config = {
             label: "Documentation",
           },
           {
-            href: "https://github.com/xandrv/pyznn",
+            href: "https://github.com/0x3639/znn-sdk-py",
             label: "GitHub",
             position: "right",
           },
@@ -80,12 +96,20 @@ const config = {
                 to: "/docs/installation",
               },
               {
-                label: "JSON-RPC client",
+                label: "JSON-RPC clients",
                 to: "/docs/json-rpc-client",
               },
               {
-                label: "Wallet",
-                to: "/docs/wallet",
+                label: "Cookbook",
+                to: "/docs/cookbook",
+              },
+              {
+                label: "API reference",
+                to: "/docs/api-reference",
+              },
+              {
+                label: "LLM index",
+                href: "https://pyznn.0x3639.com/llms.txt",
               },
             ],
           },
@@ -101,13 +125,13 @@ const config = {
                 href: "https://zenon.network/",
               },
               {
-                label: "Twitter",
-                href: "https://twitter.com/Zenon_Network",
+                label: "Zenon on X",
+                href: "https://x.com/Zenon_Network",
               },
             ],
           },
         ],
-        copyright: "Built with Docusaurus",
+        copyright: `Copyright © ${new Date().getFullYear()} PyZNN contributors. Built with Docusaurus.`,
       },
       prism: {
         theme: lightCodeTheme,

@@ -1,9 +1,3 @@
----
-sidebar_position: 1
-title: Installation and quick start
-description: Install pyznn and connect the high-level SDK to an explicit Zenon endpoint.
----
-
 # Installation and quick start
 
 PyZNN is a Python 3.12+ SDK for the Zenon Network of Momentum protocol. The

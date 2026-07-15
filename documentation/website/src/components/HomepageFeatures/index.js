@@ -4,28 +4,27 @@ import styles from "./styles.module.css";
 
 const FeatureList = [
   {
-    title: "Quick start",
+    title: "Complete stable surface",
     Svg: require("@site/static/img/1_quickstart.svg").default,
     description: (
-      <>Get started quickly to play with the Zenon Ecosystem and APIs.</>
+      <>Use all 76 canonical RPC calls, 72 typed models, and 68 embedded builders.</>
     ),
   },
   {
-    title: "Wallet",
+    title: "Transactions and wallets",
     Svg: require("@site/static/img/2_wallet.svg").default,
     description: (
       <>
-        Comes with Wallet utilities so you can start building on top of it right
-        away.
+        Prepare, inspect, PoW, sign, and publish blocks with interoperable key files.
       </>
     ),
   },
   {
-    title: "Examples",
+    title: "Offline verified",
     Svg: require("@site/static/img/3_examples.svg").default,
     description: (
       <>
-        Examples for JSON-RPC client, Wallet, Embedded APIs and other usecases.
+        Run 764 portable vectors and the transport suite without connecting to a node.
       </>
     ),
   },

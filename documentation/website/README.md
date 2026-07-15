@@ -1,41 +1,48 @@
-# PyZNN Documentation website
+# PyZNN documentation website
 
-We are using [Docusaurus 2](https://docusaurus.io/) to build static files for the documentation.
+This directory contains the Docusaurus site for the Python Zenon SDK.
+It requires Node.js 20 or newer.
 
-### Installation
+## Local development
 
-```
-$ yarn
-```
-
-### Local Development
-
-```
-$ yarn start
+```bash
+npm install
+npm run start
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+The development server watches the Markdown and React sources for changes.
 
-### Build
+Search is local and credential-free. Its index is produced by the production
+build, so use `npm run build` followed by `npm run serve` to test search.
 
-```
-$ yarn build
-```
+## Production build
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
-
-### Deployment
-
-Using SSH:
-
-```
-$ USE_SSH=true yarn deploy
+```bash
+npm run build
 ```
 
-Not using SSH:
+The generated static site is written to `build/`. The production build must
+pass before documentation changes are merged because it checks MDX parsing and
+internal links.
 
-```
-$ GIT_USER=<Your GitHub username> yarn deploy
-```
+## Deployment
 
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+The site is published at `https://pyznn.0x3639.com/` by
+`.github/workflows/pages.yml`. Every push to `master` performs a clean install,
+builds Docusaurus, uploads `build/` as a Pages artifact, and deploys it. The
+workflow can also be run manually from the Actions tab.
+
+### Custom domain activation
+
+Repository configuration alone does not create the DNS record. Before the
+custom URL can resolve:
+
+1. in **Settings → Pages**, select **GitHub Actions** as the build and deployment
+   source;
+2. create a DNS `CNAME` record for `pyznn` pointing to `0x3639.github.io`;
+3. confirm `pyznn.0x3639.com` as the custom domain in the repository's Pages
+   settings;
+4. push or manually run the Pages workflow; and
+5. enable **Enforce HTTPS** after GitHub provisions the certificate.
+
+The tracked `static/CNAME` file preserves the custom domain on each deployment.

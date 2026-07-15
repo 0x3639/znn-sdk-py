@@ -1,9 +1,3 @@
----
-sidebar_position: 2
-title: JSON-RPC clients
-description: Use the HTTP and persistent WebSocket transports, structured errors, and subscriptions.
----
-
 # JSON-RPC clients
 
 PyZNN provides HTTP and WebSocket JSON-RPC 2.0 transports. Both correlate

@@ -1,9 +1,3 @@
----
-sidebar_position: 11
-title: Contributing
-description: Set up development, run the offline conformance gates, and build the documentation site.
----
-
 # Contributing
 
 ## Python development setup

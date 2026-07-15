@@ -29,3 +29,19 @@ jobs:
       - run: python -m znn.conformance spec-kit/conformance/vectors --output znn-sdk-results.json
       - run: python spec-kit/tools/znn_spec.py check-results znn-sdk-results.json
       - run: python spec-kit/tools/znn_spec.py check-manifest conformance/manifest.json
+      - run: python tools/generate_documentation.py --check
+
+  documentation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: documentation/website
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: documentation/website/package-lock.json
+      - run: npm ci
+      - run: npm run build

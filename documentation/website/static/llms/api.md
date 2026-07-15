@@ -1,9 +1,3 @@
----
-sidebar_position: 3
-title: API facades and embedded contracts
-description: Call every canonical Zenon RPC and build embedded-contract account blocks.
----
-
 # API facades and embedded contracts
 
 API facade methods map Python names to the stable SDK's canonical positional

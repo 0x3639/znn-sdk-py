@@ -19,7 +19,7 @@ function HomepageHeader() {
             className="button button--secondary button--lg"
             to="/docs/installation"
           >
-            Documentation
+            Get started
           </Link>
         </div>
       </div>
@@ -32,7 +32,7 @@ export default function Home() {
   return (
     <Layout
       title={`${siteConfig.title}`}
-      description="Python SDK for interacting with the Zenon network and ecosystem."
+      description="Stable, typed Python SDK for the Zenon Network of Momentum."
     >
       <HomepageHeader />
       <main>
