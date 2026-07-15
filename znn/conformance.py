@@ -299,8 +299,10 @@ def run(vectors: Path):
             })
         except Exception as error:
             results.append({"id": case["id"], "error": f"{type(error).__name__}: {error}"})
+    from znn import __version__
+
     return {"format": "znn-sdk-results/1",
-            "implementation": {"name": "pyznn", "version": "0.1.0"},
+            "implementation": {"name": "znn-sdk", "version": __version__},
             "complete": len(results) == len(cases), "results": results}
 
 

@@ -1,13 +1,13 @@
-# pyznn
+# znn-sdk
 
 Python 3.12+ SDK for the Zenon Network of Momentum protocol. Version 0.1 follows
 the stable language-neutral SDK specification and canonical `go-zenon` wire
-behavior.
+behavior. Distributed on PyPI as `znn-sdk`; the import name is `znn`.
 
 ## Install
 
 ```bash
-python3.12 -m pip install pyznn
+python3.12 -m pip install znn-sdk
 ```
 
 No public third-party node is selected automatically. Pass an explicit HTTP(S)
