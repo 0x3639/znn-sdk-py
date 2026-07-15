@@ -3,7 +3,7 @@
 
 const {themes} = require("prism-react-renderer");
 const lightCodeTheme = themes.github;
-const darkCodeTheme = themes.dracula;
+const darkCodeTheme = themes.vsDark;
 const siteUrl = process.env.DOCUSAURUS_URL || "https://pyznn.0x3639.com";
 const baseUrl = process.env.DOCUSAURUS_BASE_URL || "/";
 const llmsUrl = new URL(`${baseUrl}llms.txt`, siteUrl).toString();
@@ -68,6 +68,10 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
+      colorMode: {
+        defaultMode: "dark",
+        respectPrefersColorScheme: false,
+      },
       navbar: {
         title: "PyZNN",
         logo: {

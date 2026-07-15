@@ -12,14 +12,23 @@ function HomepageHeader() {
   return (
     <header className={clsx("hero hero--primary", styles.heroBanner)}>
       <div className="container">
+        <p className={clsx("text-ledger", styles.heroEyebrow)}>
+          Network of Momentum · Python SDK
+        </p>
         <h1 className="hero__title">{siteConfig.title}</h1>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
         <div className={styles.buttons}>
           <Link
-            className="button button--secondary button--lg"
+            className="button button--primary button--lg"
             to="/docs/installation"
           >
             Get started
+          </Link>
+          <Link
+            className="button button--outline button--lg"
+            href="https://github.com/0x3639/znn-sdk-py"
+          >
+            GitHub
           </Link>
         </div>
       </div>

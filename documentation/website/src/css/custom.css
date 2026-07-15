@@ -1,30 +1,292 @@
 /**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
+ * PyZNN — Zenon Network of Momentum design system.
+ * Two fonts (Space Grotesk / JetBrains Mono), dark-native, plasma used once.
  */
 
-/* You can override the default Infima variables here. */
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  /* Zenon brand */
+  --zenon-green: #00d557;
+  --zenon-blue: #0061eb;
+  --zenon-pink: #f91690;
+  --plasma: linear-gradient(180deg, hsl(120 86% 63%) 0%, hsl(145 100% 38%) 100%);
+  --ledger-tracking: 0.06em;
+
+  /* Infima mapping — light */
+  --ifm-color-primary: hsl(145 100% 33%);
+  --ifm-color-primary-dark: hsl(145 100% 29%);
+  --ifm-color-primary-darker: hsl(145 100% 27%);
+  --ifm-color-primary-darkest: hsl(145 100% 22%);
+  --ifm-color-primary-light: hsl(145 100% 37%);
+  --ifm-color-primary-lighter: hsl(145 100% 39%);
+  --ifm-color-primary-lightest: hsl(145 100% 45%);
+  --ifm-color-success: hsl(145 63% 38%);
+  --ifm-color-info: hsl(214 100% 46%);
+  --ifm-color-warning: hsl(38 92% 50%);
+  --ifm-color-danger: hsl(352 84% 53%);
+  --ifm-link-color: hsl(214 100% 46%);          /* links are Zenon blue */
+  --ifm-background-color: hsl(0 0% 100%);
+  --ifm-font-color-base: hsl(0 0% 14.5%);
+  --ifm-color-emphasis-300: hsl(0 0% 90%);       /* borders */
+  --ifm-font-family-base: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --ifm-font-family-monospace: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --ifm-code-font-size: 87.5%;
+  --ifm-line-height-base: 1.75;
+  --ifm-heading-font-weight: 700;
+  --ifm-global-radius: 0.375rem;                 /* 6px */
+  --ifm-button-border-radius: 0.375rem;
+  --ifm-code-border-radius: 0.375rem;
+  --ifm-card-border-radius: 0.625rem;            /* 10px */
+  --ifm-navbar-shadow: 0 1px 0 hsl(0 0% 0% / .06);
+  --ifm-toc-border-color: hsl(0 0% 90%);
+  --ifm-transition-fast: 150ms;
+  --ifm-transition-timing-default: cubic-bezier(.4, 0, .2, 1);
+  --docusaurus-highlighted-code-line-bg: hsl(145 100% 42% / .08);
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --ifm-color-primary: hsl(145 100% 42%);
+  --ifm-color-primary-dark: hsl(145 100% 38%);
+  --ifm-color-primary-darker: hsl(145 100% 36%);
+  --ifm-color-primary-darkest: hsl(145 100% 29%);
+  --ifm-color-primary-light: hsl(145 100% 46%);
+  --ifm-color-primary-lighter: hsl(145 100% 48%);
+  --ifm-color-primary-lightest: hsl(145 96% 55%);
+  --ifm-color-info: hsl(214 100% 62%);
+  --ifm-color-danger: hsl(352 86% 58%);
+  --ifm-link-color: hsl(214 100% 62%);
+  --ifm-background-color: hsl(0 0% 8%);          /* near-black habitat */
+  --ifm-background-surface-color: hsl(0 0% 10%); /* navbar, cards */
+  --ifm-font-color-base: hsl(0 0% 98%);
+  --ifm-color-emphasis-300: hsl(0 0% 20%);       /* borders */
+  --ifm-toc-border-color: hsl(0 0% 20%);
+  --ifm-dropdown-background-color: hsl(0 0% 14%);
+  --ifm-navbar-shadow: 0 1px 0 hsl(0 0% 100% / .06);
+  --docusaurus-highlighted-code-line-bg: hsl(145 100% 42% / .12);
+}
+
+/* ---- Data is the hero ---- */
+code, pre, kbd, samp {
+  font-variant-numeric: tabular-nums;
+}
+/* Inline code: quiet chip, not a shout */
+code {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  background: transparent;
+  padding: .1rem .3rem;
+}
+
+/* ---- Ledger label utility (signature move 2) ---- */
+.text-ledger,
+.footer__title {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: .6875rem;
+  line-height: 1rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--ledger-tracking);
+}
+
+/* Sidebar top-level category labels as ledger labels */
+.theme-doc-sidebar-item-category > .menu__list-item-collapsible > .menu__link {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: .6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--ledger-tracking);
+  color: var(--ifm-color-emphasis-600);
+}
+
+/* ---- Plasma CTA (signature move 1) — hero primary button ONLY ---- */
+.hero .button--primary,
+.button--plasma {
+  background-image: var(--plasma);
+  background-color: transparent;
+  border: none;
+  color: hsl(0 0% 8%);
+  font-weight: 600;
+  transition: filter 150ms cubic-bezier(.4, 0, .2, 1);
+}
+.hero .button--primary:hover, .button--plasma:hover { filter: brightness(1.1); color: hsl(0 0% 8%); }
+.hero .button--primary:active, .button--plasma:active { filter: brightness(.95); }
+/* Every other button stays outline/quiet — never solid green */
+.button--secondary, .button--outline {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  background: transparent;
+  color: var(--ifm-font-color-base);
+}
+
+/* ---- Hero: flat near-black, no banner gradient ---- */
+.hero--primary {
+  background: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+}
+.hero__title { font-weight: 700; letter-spacing: -0.02em; }
+.hero__subtitle { color: var(--ifm-color-emphasis-600); }
+
+/* ---- Cards / dropdowns on dark: lit top edge + deep drop ---- */
+[data-theme='dark'] .card,
+[data-theme='dark'] .dropdown__menu,
+[data-theme='dark'] .navbar-sidebar {
+  border: 1px solid hsl(0 0% 20%);
+  box-shadow: 0 2px 6px -1px hsl(0 0% 0% / .55), inset 0 1px 0 0 hsl(0 0% 100% / .04);
+}
+.card { border: 1px solid var(--ifm-color-emphasis-300); box-shadow: 0 1px 3px 0 hsl(0 0% 0% / .08); }
+
+/* ---- Navbar / footer: calm chrome ---- */
+.navbar { border-bottom: 1px solid var(--ifm-color-emphasis-300); box-shadow: none; }
+.navbar__title { font-weight: 700; }
+.footer,
+.footer--dark {
+  --ifm-footer-background-color: var(--ifm-background-color);
+  --ifm-footer-color: var(--ifm-color-emphasis-600);
+  --ifm-footer-link-color: var(--ifm-font-color-base);
+  --ifm-footer-title-color: var(--ifm-color-emphasis-600);
+  background: var(--ifm-background-color);
+  border-top: 1px solid var(--ifm-color-emphasis-300);
+}
+[data-theme='dark'] .footer { --ifm-footer-background-color: hsl(0 0% 8%); }
+
+/* ---- Navbar search: outline field, 6px radius ---- */
+.navbar__search-input,
+.navbar .searchBox_input,
+[class*="searchBox"] input {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 0.375rem;
+  background-color: transparent;
+}
+
+/* ---- Sidebar doc links ---- */
+.menu__link { font-size: 14px; border-radius: 0.375rem; }
+[data-theme='dark'] .menu__link { color: hsl(0 0% 80%); }
+[data-theme='dark'] .theme-doc-sidebar-item-category > .menu__list-item-collapsible > .menu__link {
+  color: var(--ifm-color-emphasis-600);
+}
+.menu__link--active:not(.menu__link--sublist) {
+  color: var(--ifm-color-primary-light);
+  background: hsl(145 100% 42% / .1);
+  font-weight: 600;
+}
+[data-theme='dark'] .menu__link--active:not(.menu__link--sublist) {
+  color: hsl(145 100% 46%);
+}
+
+/* ---- Doc page header ---- */
+.markdown h1:first-child,
+header h1 {
+  font-size: 2.25rem;      /* 36px */
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ---- Code blocks: bordered, lit top edge on dark, ledger-label title ---- */
+.theme-code-block {
+  border-radius: 0.375rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  box-shadow: none;
+}
+[data-theme='dark'] .theme-code-block {
+  background: hsl(0 0% 10%);
+  box-shadow: 0 2px 6px -1px hsl(0 0% 0% / .55), inset 0 1px 0 0 hsl(0 0% 100% / .04);
+}
+[data-theme='dark'] .theme-code-block pre,
+[data-theme='dark'] .prism-code {
+  background: hsl(0 0% 10%) !important;
+}
+.theme-code-block pre { overflow-x: auto; }
+div[class*="codeBlockTitle"] {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: .6875rem;
+  line-height: 1rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--ledger-tracking);
+  border-bottom: 1px solid var(--ifm-color-emphasis-300);
+}
+[data-theme='dark'] div[class*="codeBlockTitle"] {
+  background: hsl(0 0% 12%);
+  color: var(--ifm-color-emphasis-600);
+}
+
+/* ---- Admonitions: flat tint, semantic ledger-label title, never pink ---- */
+.alert {
+  border-radius: 0.625rem;
+  border: 1px solid;
+  box-shadow: none;
+}
+.alert [class*="admonitionHeading"] {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: .6875rem;
+  line-height: 1rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--ledger-tracking);
+}
+/* note + info = Zenon blue */
+.alert--secondary,
+.alert--info {
+  --ifm-alert-background-color: hsl(214 100% 46% / .07);
+  --ifm-alert-border-color: hsl(214 100% 46% / .35);
+  --ifm-alert-foreground-color: var(--ifm-font-color-base);
+}
+.alert--secondary [class*="admonitionHeading"],
+.alert--info [class*="admonitionHeading"] { color: var(--ifm-color-info); }
+/* tip = green */
+.alert--success {
+  --ifm-alert-background-color: hsl(145 100% 42% / .07);
+  --ifm-alert-border-color: hsl(145 100% 42% / .35);
+  --ifm-alert-foreground-color: var(--ifm-font-color-base);
+}
+.alert--success [class*="admonitionHeading"] { color: var(--ifm-color-primary); }
+/* warning = amber */
+.alert--warning {
+  --ifm-alert-background-color: hsl(38 92% 50% / .07);
+  --ifm-alert-border-color: hsl(38 92% 50% / .35);
+  --ifm-alert-foreground-color: var(--ifm-font-color-base);
+}
+.alert--warning [class*="admonitionHeading"] { color: var(--ifm-color-warning); }
+/* danger = crimson, never pink */
+.alert--danger {
+  --ifm-alert-background-color: hsl(352 84% 53% / .07);
+  --ifm-alert-border-color: hsl(352 84% 53% / .35);
+  --ifm-alert-foreground-color: var(--ifm-font-color-base);
+}
+.alert--danger [class*="admonitionHeading"] { color: var(--ifm-color-danger); }
+
+/* ---- TOC ("On this page") ---- */
+.table-of-contents__link { color: var(--ifm-color-emphasis-600); }
+.table-of-contents__link--active {
+  color: var(--ifm-color-primary-light);
+  font-weight: 600;
+  border-left: 2px solid var(--ifm-color-primary-light);
+  padding-left: calc(0.5rem - 2px);
+  margin-left: -0.5rem;
+}
+
+/* ---- Pagination (prev/next): outline cards, hover = green border ---- */
+.pagination-nav__link {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 0.625rem;
+  background: transparent;
+  transition: border-color 150ms cubic-bezier(.4, 0, .2, 1);
+}
+.pagination-nav__link:hover { border-color: var(--ifm-color-primary); }
+.pagination-nav__sublabel {
+  font-size: .8125rem;
+  color: var(--ifm-color-emphasis-600);
+}
+
+/* ---- Breadcrumbs: quiet ---- */
+.breadcrumbs__link { font-size: 13px; color: var(--ifm-color-emphasis-600); }
+.breadcrumbs__item--active .breadcrumbs__link {
+  background: transparent;
+  color: var(--ifm-font-color-base);
+}
+
+/* ---- Tables: data-forward ---- */
+table td, table th { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
 }
