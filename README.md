@@ -84,9 +84,9 @@ Run all 764 stable vectors and validate the portable result document:
 
 ```bash
 python3.12 -m znn.conformance \
-  /path/to/znn-ts-sdk-spec/conformance/vectors \
+  /path/to/zenon-sdk-spec/conformance/vectors \
   --output znn-sdk-results.json
-python3 /path/to/znn-ts-sdk-spec/tools/znn_spec.py \
+python3 /path/to/zenon-sdk-spec/tools/znn_spec.py \
   check-results znn-sdk-results.json
 ```
 

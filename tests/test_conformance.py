@@ -37,7 +37,7 @@ def test_amounts_and_pow_are_exact():
 
 def test_complete_portable_vector_corpus():
     configured = os.environ.get("ZNN_SPEC_ROOT")
-    root = Path(configured) if configured else Path(__file__).resolve().parents[2] / "znn-ts-sdk-spec"
+    root = Path(configured) if configured else Path(__file__).resolve().parents[2] / "zenon-sdk-spec"
     vectors = root / "conformance" / "vectors"
     if not vectors.exists():
         pytest.skip("stable specification checkout is not available")
@@ -57,7 +57,7 @@ def test_complete_portable_vector_corpus():
 
 def test_non_transport_vectors_are_independently_dispatched():
     configured = os.environ.get("ZNN_SPEC_ROOT")
-    root = Path(configured) if configured else Path(__file__).resolve().parents[2] / "znn-ts-sdk-spec"
+    root = Path(configured) if configured else Path(__file__).resolve().parents[2] / "zenon-sdk-spec"
     vectors = root / "conformance" / "vectors"
     if not vectors.exists():
         pytest.skip("stable specification checkout is not available")
@@ -70,7 +70,7 @@ def test_non_transport_vectors_are_independently_dispatched():
 
 def test_model_schema_rejects_every_removable_required_wire_field():
     configured = os.environ.get("ZNN_SPEC_ROOT")
-    root = Path(configured) if configured else Path(__file__).resolve().parents[2] / "znn-ts-sdk-spec"
+    root = Path(configured) if configured else Path(__file__).resolve().parents[2] / "zenon-sdk-spec"
     path = root / "conformance/vectors/models.json"
     if not path.exists():
         pytest.skip("stable specification checkout is not available")

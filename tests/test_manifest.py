@@ -33,7 +33,7 @@ def test_every_manifest_symbol_resolves():
 
 def test_generated_inventories_match_pinned_spec(tmp_path):
     configured = os.environ.get("ZNN_SPEC_ROOT")
-    spec = Path(configured) if configured else Path(__file__).resolve().parents[2] / "znn-ts-sdk-spec"
+    spec = Path(configured) if configured else Path(__file__).resolve().parents[2] / "zenon-sdk-spec"
     if not spec.exists():
         pytest.skip("stable specification checkout is not available")
 

@@ -2,7 +2,7 @@
   "format": "znn-sdk-manifest/1",
   "implementation": {
     "name": "znn-sdk",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "language": "Python",
     "repository": "https://github.com/0x3639/znn-sdk-py"
   },

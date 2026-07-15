@@ -52,7 +52,7 @@ def test_keyfile_custom_kdf_configuration_and_required_fields():
 
 def test_legacy_keyfile_vectors():
     configured = os.environ.get("ZNN_SPEC_ROOT")
-    root = Path(configured) if configured else Path(__file__).resolve().parents[3] / "znn-ts-sdk-spec"
+    root = Path(configured) if configured else Path(__file__).resolve().parents[3] / "zenon-sdk-spec"
     if not root.exists():
         pytest.skip("stable specification checkout is not available")
     vectors = json.loads((root / "conformance/vectors/keyfile.json").read_text())

@@ -10,7 +10,7 @@ from znn.model.nom.account_block import AccountBlock
 
 def test_complete_account_block_wire_round_trip():
     configured = os.environ.get("ZNN_SPEC_ROOT")
-    root = Path(configured) if configured else Path(__file__).resolve().parents[4] / "znn-ts-sdk-spec"
+    root = Path(configured) if configured else Path(__file__).resolve().parents[4] / "zenon-sdk-spec"
     if not root.exists():
         pytest.skip("stable specification checkout is not available")
     cases = json.loads((root / "conformance/vectors/models.json").read_text())["cases"]

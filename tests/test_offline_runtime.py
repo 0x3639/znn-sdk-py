@@ -65,7 +65,7 @@ def _spec_root():
     return (
         Path(configured)
         if configured
-        else Path(__file__).resolve().parents[2] / "znn-ts-sdk-spec"
+        else Path(__file__).resolve().parents[2] / "zenon-sdk-spec"
     )
 
 
