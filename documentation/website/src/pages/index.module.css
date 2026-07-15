@@ -4,15 +4,20 @@
  */
 
 .heroBanner {
-  padding: 4rem 0;
+  padding: 6rem 0 5rem;
   text-align: center;
   position: relative;
   overflow: hidden;
 }
 
+.heroEyebrow {
+  color: var(--ifm-color-emphasis-600);
+  margin-bottom: 1rem;
+}
+
 @media screen and (max-width: 996px) {
   .heroBanner {
-    padding: 2rem;
+    padding: 3rem 2rem;
   }
 }
 
@@ -20,4 +25,5 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.75rem;
 }

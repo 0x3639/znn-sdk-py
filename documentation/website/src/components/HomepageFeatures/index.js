@@ -2,17 +2,23 @@ import React from "react";
 import clsx from "clsx";
 import styles from "./styles.module.css";
 
+const StatList = [
+  { value: "76", label: "RPC calls" },
+  { value: "72", label: "Typed models" },
+  { value: "68", label: "Builders" },
+  { value: "764", label: "Test vectors" },
+  { value: "0", label: "Transaction fees" },
+];
+
 const FeatureList = [
   {
     title: "Complete stable surface",
-    Svg: require("@site/static/img/1_quickstart.svg").default,
     description: (
       <>Use all 76 canonical RPC calls, 72 typed models, and 68 embedded builders.</>
     ),
   },
   {
     title: "Transactions and wallets",
-    Svg: require("@site/static/img/2_wallet.svg").default,
     description: (
       <>
         Prepare, inspect, PoW, sign, and publish blocks with interoperable key files.
@@ -21,7 +27,6 @@ const FeatureList = [
   },
   {
     title: "Offline verified",
-    Svg: require("@site/static/img/3_examples.svg").default,
     description: (
       <>
         Run 764 portable vectors and the transport suite without connecting to a node.
@@ -30,13 +35,19 @@ const FeatureList = [
   },
 ];
 
-function Feature({ Svg, title, description }) {
+function Stat({ value, label }) {
   return (
-    <div className={clsx("col col--4")}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
-      <div className="text--center padding-horiz--md">
+    <div className={styles.stat}>
+      <span className={styles.statValue}>{value}</span>
+      <span className={clsx("text-ledger", styles.statLabel)}>{label}</span>
+    </div>
+  );
+}
+
+function Feature({ title, description }) {
+  return (
+    <div className={clsx("col col--4", styles.featureCol)}>
+      <div className={clsx("card", styles.featureCard)}>
         <h3>{title}</h3>
         <p>{description}</p>
       </div>
@@ -48,6 +59,11 @@ export default function HomepageFeatures() {
   return (
     <section className={styles.features}>
       <div className="container">
+        <div className={styles.stats}>
+          {StatList.map((props, idx) => (
+            <Stat key={idx} {...props} />
+          ))}
+        </div>
         <div className="row">
           {FeatureList.map((props, idx) => (
             <Feature key={idx} {...props} />
