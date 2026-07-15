@@ -65,6 +65,16 @@ class PillarApi:
             "embedded.pillar.getDelegatedPillar", [str(pillar_address)]
         )
 
+    async def get_pillar_epoch_history(self, name: str, page_index=0, page_size=RPC_MAX_PAGE_SIZE):
+        return await self.ws_client.send_request(
+            "embedded.pillar.getPillarEpochHistory", [name, page_index, page_size]
+        )
+
+    async def get_pillars_history_by_epoch(self, epoch: int, page_index=0, page_size=RPC_MAX_PAGE_SIZE):
+        return await self.ws_client.send_request(
+            "embedded.pillar.getPillarsHistoryByEpoch", [epoch, page_index, page_size]
+        )
+
     def register(
         self,
         name: str,

@@ -14,11 +14,11 @@ from setuptools import setup
 # Package meta-data.
 NAME = "pyznn"
 DESCRIPTION = "Python SDK for interacting with the Zenon network and ecosystem."
-URL = "https://github.com/xandrv/pyznn"
+URL = "https://github.com/0x3639/znn-sdk-py"
 EMAIL = "roymiller2105@gmail.com"
 AUTHOR = "Roy Miller"
 REQUIRES_PYTHON = ">=3.12.0"
-VERSION = "0.0.2"
+VERSION = "0.1.0"
 
 INSTALL_REQUIRES = [
     "bech32==1.2.0",
@@ -26,9 +26,10 @@ INSTALL_REQUIRES = [
     "pynacl==1.5.0",
     "eth-abi==5.1.0",
     "eth-utils==5.0.0",
-    "jsonrpcclient==4.0.2",
     "mnemonic==0.20",
     "websockets==10.3",
+    "argon2-cffi==23.1.0",
+    "pycryptodome>=3.20.0,<4",
 ]
 
 # For local development, tests
@@ -39,6 +40,7 @@ EXTRAS_REQUIRES = {
         "pre-commit==2.19.0",
         "pytest==7.1.2",
         "pytest-mock==3.7.0",
+        "ruff==0.9.10",
     ],
 }
 
@@ -116,7 +118,6 @@ setup(
     classifiers=[
         # Trove classifiers
         # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.12",

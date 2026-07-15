@@ -1,10 +1,18 @@
 import bech32
+from copy import deepcopy
 
 HRP = "zts"
 
 
 class TokenStandard:
+    LENGTH = 10
+
     def __init__(self, hrp: str, core: bytes):
+        core = bytes(core)
+        if hrp != HRP:
+            raise ValueError(f"Token-standard HRP must be {HRP!r}")
+        if len(core) != self.LENGTH:
+            raise ValueError(f"Token-standard core must be exactly {self.LENGTH} bytes")
         self.hrp = hrp
         self.core = core
 
@@ -32,12 +40,48 @@ class TokenStandard:
         Out[1]: 'z1qqjnwjjpnue8xmmpanz6csze6tcmtzzdtfsww7'
         """
         hrp, bcore = bech32.bech32_decode(token_standard)
+        if hrp != HRP or bcore is None:
+            raise ValueError("Invalid Zenon token standard or HRP")
         core = bech32.convertbits(bcore, 5, 8, False)
-        return TokenStandard(hrp, core)
+        if core is None:
+            raise ValueError("Invalid Zenon token-standard encoding")
+        result = TokenStandard(hrp, bytes(core))
+        if str(result) != token_standard:
+            raise ValueError("Non-canonical Zenon token-standard encoding")
+        return result
 
     @staticmethod
     def from_hex(ts_hex: str):
-        return TokenStandard(HRP, bytes.fromhex(ts_hex))
+        return TokenStandard.from_core(bytes.fromhex(ts_hex.removeprefix("0x")))
+
+    @staticmethod
+    def from_core(core: bytes) -> "TokenStandard":
+        return TokenStandard(HRP, core)
+
+    @staticmethod
+    def from_json(value: dict) -> "TokenStandard":
+        instance = TokenStandard.__new__(TokenStandard)
+        instance.hrp = value.get("hrp", HRP)
+        instance.core = deepcopy(value["core"])
+        instance._wire_json = deepcopy(value)
+        return instance
+
+    def to_json(self) -> dict:
+        if hasattr(self, "_wire_json"):
+            return deepcopy(self._wire_json)
+        return {"core": self.core_to_hex.removeprefix("0x")}
+
+    def to_bytes(self) -> bytes:
+        return bytes(self.core)
+
+    def __bytes__(self) -> bytes:
+        return self.to_bytes()
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, TokenStandard) and self.core == other.core
+
+    def __hash__(self) -> int:
+        return hash(self.core)
 
     @property
     def core_to_hex(self):

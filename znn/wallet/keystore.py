@@ -12,6 +12,8 @@ class KeyStore:
         self.entropy = mnemonic_obj.to_entropy(mnemonic).hex()
 
     def get_key_pair(self, account: int = 0):
+        if not isinstance(account, int) or isinstance(account, bool) or account < 0:
+            raise ValueError("account must be a non-negative integer")
         # BIP44 https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki
         # m / purpose' / coin_type' / account' / change / address_index
         path = f"m/44'/73404'/{account}'"
@@ -30,3 +32,20 @@ class KeyStore:
         mnemo = Mnemonic("english")
         words = mnemo.generate(strength=256)
         return KeyStore(words, passphrase)
+
+    @staticmethod
+    def from_mnemonic(mnemonic: str, passphrase: str = ""):
+        return KeyStore(mnemonic, passphrase)
+
+    @staticmethod
+    def from_entropy(entropy: str | bytes, passphrase: str = ""):
+        raw = bytes.fromhex(entropy) if isinstance(entropy, str) else bytes(entropy)
+        if len(raw) not in {16, 20, 24, 28, 32}:
+            raise ValueError("BIP39 entropy must contain 128 to 256 bits in 32-bit steps")
+        mnemonic = Mnemonic("english").to_mnemonic(raw)
+        return KeyStore(mnemonic, passphrase)
+
+    def clear(self) -> None:
+        self.mnemonic = ""
+        self.seed = ""
+        self.entropy = ""

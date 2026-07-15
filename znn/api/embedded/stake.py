@@ -43,7 +43,7 @@ class StakeApi:
             STAKE_ADDRESS,
             ZNN_ZTS,
             amount,
-            STAKE_ABI.encode("Stake", [str(duration_in_sec)],),
+            STAKE_ABI.encode("Stake", [duration_in_sec],),
         )
 
     def cancel(

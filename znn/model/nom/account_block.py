@@ -28,38 +28,55 @@ class AccountBlock:
         self.data = bytes.fromhex("")
         self.difficulty = 0
         self.nonce = bytes.fromhex("0000000000000000")
-        self.public_key = None
-        self.signature = None
+        self.public_key = b""
+        self.signature = b""
+        self._extra_fields = {}
         self.__dict__.update(kwargs)
 
     @staticmethod
     def from_json(json_data):
+        known_keys = {
+            "version", "blockType", "chainIdentifier", "fromBlockHash", "hash",
+            "previousHash", "height", "momentumAcknowledged", "address",
+            "toAddress", "amount", "tokenStandard", "fusedPlasma", "data",
+            "difficulty", "nonce", "publicKey", "signature",
+        }
+        nonce_text = json_data.get("nonce", "0000000000000000")
+        try:
+            nonce = bytes.fromhex(nonce_text)
+        except ValueError:
+            nonce = nonce_text
         kwargs = {
-            "version": json_data["version"],
-            "block_type": json_data["blockType"],
-            "chain_identifier": json_data["chainIdentifier"],
-            "from_block_hash": Hash.parse(json_data["fromBlockHash"]),
-            "hash": Hash.parse(json_data["hash"]),
-            "previous_hash": Hash.parse(json_data["previousHash"]),
-            "height": json_data["height"],
+            "version": int(json_data.get("version", 1)),
+            "block_type": int(json_data.get("blockType", 0)),
+            "chain_identifier": int(json_data.get("chainIdentifier", 1)),
+            "from_block_hash": Hash.parse(json_data.get("fromBlockHash", str(EMPTY_HASH))),
+            "hash": Hash.parse(json_data.get("hash", str(EMPTY_HASH))),
+            "previous_hash": Hash.parse(json_data.get("previousHash", str(EMPTY_HASH))),
+            "height": int(json_data.get("height", 0)),
             "momentum_acknowledged": HashHeight.from_json(
-                json_data["momentumAcknowledged"]
+                json_data.get("momentumAcknowledged")
             ),
-            "address": Address.parse(json_data["address"]),
-            "to_address": Address.parse(json_data["toAddress"]),
-            "amount": json_data["amount"],
-            "token_standard": TokenStandard.parse(json_data["tokenStandard"]),
-            "fused_plasma": json_data["fusedPlasma"],
-            "data": base64.b64decode(json_data["data"]),
-            "difficulty": json_data["difficulty"],
-            "nonce": bytes.fromhex(json_data["nonce"]),
-            "public_key": base64.b64decode(json_data["publicKey"]),
-            "signature": base64.b64decode(json_data["signature"]),
+            "address": Address.parse(json_data.get("address", str(EMPTY_ADDRESS))),
+            "to_address": Address.parse(json_data.get("toAddress", str(EMPTY_ADDRESS))),
+            "amount": int(json_data.get("amount", 0)),
+            "token_standard": TokenStandard.parse(json_data.get("tokenStandard", str(EMPTY_ZTS))),
+            "fused_plasma": int(json_data.get("fusedPlasma", 0)),
+            "data": base64.b64decode(json_data.get("data", "")),
+            "difficulty": int(json_data.get("difficulty", 0)),
+            "nonce": nonce,
+            "public_key": base64.b64decode(json_data.get("publicKey", "")),
+            "signature": base64.b64decode(json_data.get("signature", "")),
+            "_momentum_was_empty": not bool(json_data.get("momentumAcknowledged")),
+            "_extra_fields": {
+                key: value for key, value in json_data.items() if key not in known_keys
+            },
         }
         return AccountBlock(**kwargs)
 
     def to_json(self):
-        return {
+        nonce = self.nonce.hex() if isinstance(self.nonce, bytes) else self.nonce
+        result = {
             "version": self.version,
             "blockType": self.block_type,
             "chainIdentifier": self.chain_identifier,
@@ -67,18 +84,32 @@ class AccountBlock:
             "hash": str(self.hash),
             "previousHash": str(self.previous_hash),
             "height": self.height,
-            "momentumAcknowledged": self.momentum_acknowledged.to_json(),
+            "momentumAcknowledged": {} if getattr(self, "_momentum_was_empty", False) else self.momentum_acknowledged.to_json(),
             "address": str(self.address),
             "toAddress": str(self.to_address),
-            "amount": self.amount,
+            "amount": str(self.amount),
             "tokenStandard": str(self.token_standard),
             "fusedPlasma": self.fused_plasma,
             "data": base64.b64encode(self.data).decode(),
             "difficulty": self.difficulty,
-            "nonce": self.nonce.hex(),
+            "nonce": nonce,
             "publicKey": base64.b64encode(self.public_key).decode(),
             "signature": base64.b64encode(self.signature).decode(),
         }
+        response_fields = {
+            "token": self._extra_fields.get("token"),
+            "descendantBlocks": self._extra_fields.get("descendantBlocks"),
+            "basePlasma": self._extra_fields.get("basePlasma"),
+            "usedPlasma": self._extra_fields.get("usedPlasma"),
+            "changesHash": self._extra_fields.get("changesHash"),
+            "confirmationDetail": self._extra_fields.get("confirmationDetail"),
+            "pairedAccountBlock": self._extra_fields.get("pairedAccountBlock"),
+        }
+        result.update(
+            {key: value for key, value in response_fields.items() if key in self._extra_fields}
+        )
+        result.update(self._extra_fields)
+        return result
 
     @staticmethod
     def contract_call(contract_address, zts, amount: int, data):
@@ -90,7 +121,21 @@ class AccountBlock:
         ab.data = data
         return ab
 
+    @staticmethod
+    def send(to_address: Address, zts: TokenStandard, amount: int):
+        return AccountBlock(
+            block_type=2, to_address=to_address, token_standard=zts, amount=int(amount)
+        )
+
+    @staticmethod
+    def receive(from_block_hash: Hash):
+        return AccountBlock(block_type=3, from_block_hash=from_block_hash)
+
     def get_hash(self):
+        if not isinstance(self.nonce, bytes) or len(self.nonce) != 8:
+            raise ValueError("Account-block nonce must be exactly 8 bytes")
+        if self.amount < 0 or self.amount >= 1 << 256:
+            raise ValueError("Account-block amount must fit an unsigned 256-bit integer")
         return Hash.digest(
             b"".join(
                 [

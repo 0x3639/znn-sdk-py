@@ -19,3 +19,6 @@ class StatsApi:
     async def network_info(self):
         """Get info of connected peers to the network."""
         return await self.ws_client.send_request("stats.networkInfo", [])
+
+    async def sync_info(self):
+        return await self.ws_client.send_request("stats.syncInfo", [])

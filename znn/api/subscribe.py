@@ -2,7 +2,7 @@ from znn.client.websocket import get_default_client
 
 
 class SubscribeApi:
-    """Subscribe to messages.
+    """Create subscriptions that yield normalized update objects.
 
     Example:
     -------
@@ -19,7 +19,7 @@ class SubscribeApi:
     .
     .
     .
-    This will run forever.
+    The returned subscription is an async iterator.
     """
 
     def __init__(self, ws_client=None):
@@ -32,16 +32,10 @@ class SubscribeApi:
         return await self.ws_client.send_and_listen("ledger.subscribe", ["momentums"])
 
     async def to_all_account_blocks(self):
-        return await self.ws_client.send_and_listen(
-            "ledger.subscribe", ["allAccountBlocks"]
-        )
+        return await self.ws_client.send_and_listen("ledger.subscribe", ["allAccountBlocks"])
 
     async def to_account_blocks_by_address(self, address: str):
-        return await self.ws_client.send_and_listen(
-            "ledger.subscribe", ["accountBlocksByAddress", address]
-        )
+        return await self.ws_client.send_and_listen("ledger.subscribe", ["accountBlocksByAddress", address])
 
     async def to_unreceived_account_blocks_by_address(self, address: str):
-        return await self.ws_client.send_and_listen(
-            "ledger.subscribe", ["unreceivedAccountBlocksByAddress", address]
-        )
+        return await self.ws_client.send_and_listen("ledger.subscribe", ["unreceivedAccountBlocksByAddress", address])

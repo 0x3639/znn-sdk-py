@@ -1,4 +1,5 @@
 import base64
+import warnings
 
 from znn.client.websocket import get_default_client
 from znn.constants import RPC_MAX_PAGE_SIZE
@@ -33,9 +34,12 @@ class PlasmaApi:
         )
 
     async def get_required_fusion_amount(self, required_plasma: int):
-        return await self.ws_client.send_request(
-            "embedded.plasma.getRequiredFusionAmount", [required_plasma]
+        warnings.warn(
+            "get_required_fusion_amount was removed from the canonical node RPC",
+            DeprecationWarning,
+            stacklevel=2,
         )
+        raise NotImplementedError("The canonical node does not expose this RPC")
 
     async def get_internal_required_pow_for_account_block(
         self, account_block: AccountBlock

@@ -56,7 +56,7 @@ class SentinelApi:
 
     def revoke(self,):
         return AccountBlock.contract_call(
-            SENTINEL_ABI, ZNN_ZTS, 0, SENTINEL_ABI.encode("Revoke", [],),
+            SENTINEL_ADDRESS, ZNN_ZTS, 0, SENTINEL_ABI.encode("Revoke", [],),
         )
 
     def collect_reward(self,):

@@ -1,0 +1,941 @@
+{
+  "format": "znn-sdk-manifest/1",
+  "implementation": {
+    "name": "pyznn",
+    "version": "0.1.0",
+    "language": "Python",
+    "repository": "https://github.com/0x3639/znn-sdk-py"
+  },
+  "levels": [
+    "full"
+  ],
+  "capabilities": {
+    "abi.Accelerator.AddPhase(hash,string,string,string,uint256,uint256)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Accelerator.CreateProject(string,string,string,uint256,uint256)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Accelerator.Donate()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Accelerator.Update()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Accelerator.UpdatePhase(hash,string,string,string,uint256,uint256)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Accelerator.VoteByName(hash,string,uint8)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Accelerator.VoteByProdAddress(hash,uint8)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.ChangeAdministrator(address)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.ChangeTssECDSAPubKey(string,string,string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.Emergency()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.Halt(string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.NominateGuardians(address[])": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.ProposeAdministrator(address)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.Redeem(hash,uint32)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.RemoveNetwork(uint32,uint32)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.RemoveTokenPair(uint32,uint32,tokenStandard,string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.RevokeUnwrapRequest(hash,uint32)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.SetAllowKeyGen(bool)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.SetBridgeMetadata(string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.SetNetwork(uint32,uint32,string,string,string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.SetNetworkMetadata(uint32,uint32,string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.SetOrchestratorInfo(uint64,uint32,uint32,uint32)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.SetRedeemDelay(uint64)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.SetTokenPair(uint32,uint32,tokenStandard,string,bool,bool,bool,uint256,uint32,uint32,string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.Unhalt()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.UnwrapToken(uint32,uint32,hash,uint32,address,string,uint256,string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.UpdateWrapRequest(hash,string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Bridge.WrapToken(uint32,uint32,string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Common.CollectReward()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Common.DepositQsr()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Common.Donate()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Common.Update()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Common.VoteByName(hash,string,uint8)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Common.VoteByProdAddress(hash,uint8)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Common.WithdrawQsr()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Htlc.AllowProxyUnlock()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Htlc.Create(address,int64,uint8,uint8,bytes)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Htlc.DenyProxyUnlock()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Htlc.Reclaim(hash)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Htlc.Unlock(hash,bytes)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.BurnZnn(uint256)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.CancelLiquidityStake(hash)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.ChangeAdministrator(address)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.CollectReward()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.Donate()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.Emergency()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.Fund(uint256,uint256)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.LiquidityStake(int64)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.NominateGuardians(address[])": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.ProposeAdministrator(address)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.SetAdditionalReward(uint256,uint256)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.SetIsHalted(bool)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.SetTokenTuple(string[],uint32[],uint32[],uint256[])": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.UnlockLiquidityStakeEntries()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Liquidity.Update()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Pillar.CollectReward()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Pillar.Delegate(string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Pillar.DepositQsr()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Pillar.Register(string,address,address,uint8,uint8)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Pillar.RegisterLegacy(string,address,address,uint8,uint8,string,string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Pillar.Revoke(string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Pillar.Undelegate()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Pillar.Update()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Pillar.UpdatePillar(string,address,address,uint8,uint8)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Pillar.WithdrawQsr()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Plasma.CancelFuse(hash)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Plasma.Fuse(address)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Sentinel.CollectReward()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Sentinel.DepositQsr()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Sentinel.Register()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Sentinel.Revoke()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Sentinel.Update()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Sentinel.WithdrawQsr()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Spork.ActivateSpork(hash)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Spork.CreateSpork(string,string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Stake.Cancel(hash)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Stake.CollectReward()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Stake.Stake(int64)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Stake.Update()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Swap.RetrieveAssets(string,string)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Token.Burn()": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Token.IssueToken(string,string,string,uint256,uint256,uint8,bool,bool,bool)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Token.Mint(tokenStandard,uint256,address)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "abi.Token.UpdateToken(tokenStandard,address,bool,bool)": {
+      "symbol": "znn.embedded.definitions"
+    },
+    "amount.decimals": {
+      "symbol": "znn.amount"
+    },
+    "builder.accelerator.addPhase": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.accelerator.createProject": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.accelerator.donate": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.accelerator.updatePhase": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.accelerator.voteByName": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.accelerator.voteByProdAddress": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.changeAdministrator": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.changeTssECDSAPubKey": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.emergency": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.halt": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.nominateGuardians": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.proposeAdministrator": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.redeem": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.removeNetwork": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.removeTokenPair": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.revokeUnwrapRequest": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.setAllowKeyGen": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.setBridgeMetadata": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.setNetwork": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.setNetworkMetadata": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.setOrchestratorInfo": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.setTokenPair": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.unhalt": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.unwrapToken": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.updateWrapRequest": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.bridge.wrapToken": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.htlc.allowProxyUnlock": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.htlc.create": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.htlc.denyProxyUnlock": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.htlc.reclaim": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.htlc.unlock": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.liquidity.cancelLiquidityStake": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.liquidity.changeAdministrator": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.liquidity.collectReward": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.liquidity.emergency": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.liquidity.liquidityStake": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.liquidity.nominateGuardians": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.liquidity.proposeAdministrator": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.liquidity.setAdditionalReward": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.liquidity.setIsHalted": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.liquidity.setTokenTuple": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.liquidity.unlockLiquidityStakeEntries": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.pillar.collectRewards": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.pillar.delegate": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.pillar.depositQsr": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.pillar.register": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.pillar.registerLegacy": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.pillar.revoke": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.pillar.undelegate": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.pillar.updatePillar": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.pillar.withdrawQsr": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.plasma.cancel": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.plasma.fuse": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.sentinel.collectRewards": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.sentinel.depositQsr": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.sentinel.register": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.sentinel.revoke": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.sentinel.withdrawQsr": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.spork.activateSpork": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.spork.createSpork": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.stake.cancel": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.stake.collectReward": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.stake.stake": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.swap.retrieveAssets": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.token.burnToken": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.token.issueToken": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.token.mint": {
+      "symbol": "znn.api.embedded"
+    },
+    "builder.token.updateToken": {
+      "symbol": "znn.api.embedded"
+    },
+    "model.AcceleratorProject": {
+      "symbol": "znn.model.models.AcceleratorProject"
+    },
+    "model.AccountBlock": {
+      "symbol": "znn.model.models.AccountBlock"
+    },
+    "model.AccountBlockConfirmationDetail": {
+      "symbol": "znn.model.models.AccountBlockConfirmationDetail"
+    },
+    "model.AccountBlockList": {
+      "symbol": "znn.model.models.AccountBlockList"
+    },
+    "model.AccountHeader": {
+      "symbol": "znn.model.models.AccountHeader"
+    },
+    "model.AccountInfo": {
+      "symbol": "znn.model.models.AccountInfo"
+    },
+    "model.BalanceInfoListItem": {
+      "symbol": "znn.model.models.BalanceInfoListItem"
+    },
+    "model.BridgeInfo": {
+      "symbol": "znn.model.models.BridgeInfo"
+    },
+    "model.BridgeNetworkInfo": {
+      "symbol": "znn.model.models.BridgeNetworkInfo"
+    },
+    "model.BridgeNetworkInfoList": {
+      "symbol": "znn.model.models.BridgeNetworkInfoList"
+    },
+    "model.DelegationInfo": {
+      "symbol": "znn.model.models.DelegationInfo"
+    },
+    "model.DetailedMomentum": {
+      "symbol": "znn.model.models.DetailedMomentum"
+    },
+    "model.DetailedMomentumList": {
+      "symbol": "znn.model.models.DetailedMomentumList"
+    },
+    "model.FusionEntry": {
+      "symbol": "znn.model.models.FusionEntry"
+    },
+    "model.FusionEntryList": {
+      "symbol": "znn.model.models.FusionEntryList"
+    },
+    "model.GetRequiredPowResponse": {
+      "symbol": "znn.model.models.GetRequiredPowResponse"
+    },
+    "model.HtlcInfo": {
+      "symbol": "znn.model.models.HtlcInfo"
+    },
+    "model.LiquidityInfo": {
+      "symbol": "znn.model.models.LiquidityInfo"
+    },
+    "model.LiquidityStakeEntry": {
+      "symbol": "znn.model.models.LiquidityStakeEntry"
+    },
+    "model.LiquidityStakeList": {
+      "symbol": "znn.model.models.LiquidityStakeList"
+    },
+    "model.Momentum": {
+      "symbol": "znn.model.models.Momentum"
+    },
+    "model.MomentumList": {
+      "symbol": "znn.model.models.MomentumList"
+    },
+    "model.NetworkInfo": {
+      "symbol": "znn.model.models.NetworkInfo"
+    },
+    "model.OrchestratorInfo": {
+      "symbol": "znn.model.models.OrchestratorInfo"
+    },
+    "model.OsInfo": {
+      "symbol": "znn.model.models.OsInfo"
+    },
+    "model.Peer": {
+      "symbol": "znn.model.models.Peer"
+    },
+    "model.Phase": {
+      "symbol": "znn.model.models.Phase"
+    },
+    "model.PillarEpochHistory": {
+      "symbol": "znn.model.models.PillarEpochHistory"
+    },
+    "model.PillarEpochHistoryList": {
+      "symbol": "znn.model.models.PillarEpochHistoryList"
+    },
+    "model.PillarEpochStats": {
+      "symbol": "znn.model.models.PillarEpochStats"
+    },
+    "model.PillarInfo": {
+      "symbol": "znn.model.models.PillarInfo"
+    },
+    "model.PillarInfoList": {
+      "symbol": "znn.model.models.PillarInfoList"
+    },
+    "model.PillarVote": {
+      "symbol": "znn.model.models.PillarVote"
+    },
+    "model.PlasmaInfo": {
+      "symbol": "znn.model.models.PlasmaInfo"
+    },
+    "model.ProcessInfo": {
+      "symbol": "znn.model.models.ProcessInfo"
+    },
+    "model.Project": {
+      "symbol": "znn.model.models.Project"
+    },
+    "model.ProjectList": {
+      "symbol": "znn.model.models.ProjectList"
+    },
+    "model.RewardDeposit": {
+      "symbol": "znn.model.models.RewardDeposit"
+    },
+    "model.RewardHistoryEntry": {
+      "symbol": "znn.model.models.RewardHistoryEntry"
+    },
+    "model.RewardHistoryList": {
+      "symbol": "znn.model.models.RewardHistoryList"
+    },
+    "model.SecurityInfo": {
+      "symbol": "znn.model.models.SecurityInfo"
+    },
+    "model.SentinelInfo": {
+      "symbol": "znn.model.models.SentinelInfo"
+    },
+    "model.SentinelInfoList": {
+      "symbol": "znn.model.models.SentinelInfoList"
+    },
+    "model.Spork": {
+      "symbol": "znn.model.models.Spork"
+    },
+    "model.SporkList": {
+      "symbol": "znn.model.models.SporkList"
+    },
+    "model.StakeEntry": {
+      "symbol": "znn.model.models.StakeEntry"
+    },
+    "model.StakeList": {
+      "symbol": "znn.model.models.StakeList"
+    },
+    "model.SwapAssetEntry": {
+      "symbol": "znn.model.models.SwapAssetEntry"
+    },
+    "model.SwapAssetList": {
+      "symbol": "znn.model.models.SwapAssetList"
+    },
+    "model.SwapLegacyPillarEntry": {
+      "symbol": "znn.model.models.SwapLegacyPillarEntry"
+    },
+    "model.SwapLegacyPillarList": {
+      "symbol": "znn.model.models.SwapLegacyPillarList"
+    },
+    "model.SyncInfo": {
+      "symbol": "znn.model.models.SyncInfo"
+    },
+    "model.TimeChallengeInfo": {
+      "symbol": "znn.model.models.TimeChallengeInfo"
+    },
+    "model.TimeChallengesList": {
+      "symbol": "znn.model.models.TimeChallengesList"
+    },
+    "model.Token": {
+      "symbol": "znn.model.models.Token"
+    },
+    "model.TokenList": {
+      "symbol": "znn.model.models.TokenList"
+    },
+    "model.TokenPair": {
+      "symbol": "znn.model.models.TokenPair"
+    },
+    "model.TokenTuple": {
+      "symbol": "znn.model.models.TokenTuple"
+    },
+    "model.UncollectedReward": {
+      "symbol": "znn.model.models.UncollectedReward"
+    },
+    "model.UnwrapTokenRequest": {
+      "symbol": "znn.model.models.UnwrapTokenRequest"
+    },
+    "model.UnwrapTokenRequestList": {
+      "symbol": "znn.model.models.UnwrapTokenRequestList"
+    },
+    "model.VoteBreakdown": {
+      "symbol": "znn.model.models.VoteBreakdown"
+    },
+    "model.WrapTokenRequest": {
+      "symbol": "znn.model.models.WrapTokenRequest"
+    },
+    "model.WrapTokenRequestList": {
+      "symbol": "znn.model.models.WrapTokenRequestList"
+    },
+    "model.ZtsFeesInfo": {
+      "symbol": "znn.model.models.ZtsFeesInfo"
+    },
+    "pow.generate": {
+      "symbol": "znn.pow.generate"
+    },
+    "primitive.address": {
+      "symbol": "znn.model.primitives.address.Address"
+    },
+    "primitive.hash": {
+      "symbol": "znn.model.primitives.hash.Hash"
+    },
+    "primitive.hash-height": {
+      "symbol": "znn.model.primitives.hash_height.HashHeight"
+    },
+    "primitive.token-standard": {
+      "symbol": "znn.model.primitives.token_standard.TokenStandard"
+    },
+    "rpc.embedded.accelerator.getAll": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.accelerator.getPhaseById": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.accelerator.getPillarVotes": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.accelerator.getProjectById": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.accelerator.getVoteBreakdown": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getAllNetworks": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getAllUnsignedWrapTokenRequests": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getAllUnwrapTokenRequests": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getAllUnwrapTokenRequestsByToAddress": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getAllWrapTokenRequests": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getAllWrapTokenRequestsByToAddress": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getAllWrapTokenRequestsByToAddressNetworkClassAndChainId": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getBridgeInfo": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getFeeTokenPair": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getNetworkInfo": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getOrchestratorInfo": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getSecurityInfo": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getTimeChallengesInfo": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getUnwrapTokenRequestByHashAndLog": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.bridge.getWrapTokenRequestById": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.htlc.getById": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.htlc.getProxyUnlockStatus": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.liquidity.getFrontierRewardByPage": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.liquidity.getLiquidityInfo": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.liquidity.getLiquidityStakeEntriesByAddress": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.liquidity.getSecurityInfo": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.liquidity.getTimeChallengesInfo": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.liquidity.getUncollectedReward": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.pillar.checkNameAvailability": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.pillar.getAll": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.pillar.getByName": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.pillar.getByOwner": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.pillar.getDelegatedPillar": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.pillar.getDepositedQsr": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.pillar.getFrontierRewardByPage": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.pillar.getPillarEpochHistory": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.pillar.getPillarsHistoryByEpoch": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.pillar.getQsrRegistrationCost": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.pillar.getUncollectedReward": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.plasma.get": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.plasma.getEntriesByAddress": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.plasma.getRequiredPoWForAccountBlock": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.sentinel.getAllActive": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.sentinel.getByOwner": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.sentinel.getDepositedQsr": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.sentinel.getFrontierRewardByPage": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.sentinel.getUncollectedReward": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.spork.getAll": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.stake.getEntriesByAddress": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.stake.getFrontierRewardByPage": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.stake.getUncollectedReward": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.swap.getAssets": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.swap.getAssetsByKeyIdHash": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.swap.getLegacyPillars": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.token.getAll": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.token.getByOwner": {
+      "symbol": "znn.api"
+    },
+    "rpc.embedded.token.getByZts": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.getAccountBlockByHash": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.getAccountBlocksByHeight": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.getAccountBlocksByPage": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.getAccountInfoByAddress": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.getDetailedMomentumsByHeight": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.getFrontierAccountBlock": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.getFrontierMomentum": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.getMomentumBeforeTime": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.getMomentumByHash": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.getMomentumsByHeight": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.getMomentumsByPage": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.getUnconfirmedBlocksByAddress": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.getUnreceivedBlocksByAddress": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.publishRawTransaction": {
+      "symbol": "znn.api"
+    },
+    "rpc.ledger.subscribe": {
+      "symbol": "znn.api"
+    },
+    "rpc.stats.networkInfo": {
+      "symbol": "znn.api"
+    },
+    "rpc.stats.osInfo": {
+      "symbol": "znn.api"
+    },
+    "rpc.stats.processInfo": {
+      "symbol": "znn.api"
+    },
+    "rpc.stats.syncInfo": {
+      "symbol": "znn.api"
+    },
+    "sdk.lifecycle": {
+      "symbol": "znn.sdk.Zenon"
+    },
+    "serialization.json": {
+      "symbol": "znn.model.models.Model"
+    },
+    "transaction.blocks": {
+      "symbol": "znn.model.nom.account_block.AccountBlock"
+    },
+    "transaction.hashing": {
+      "symbol": "AccountBlock.get_hash"
+    },
+    "transaction.signing": {
+      "symbol": "KeyPair.sign_hash"
+    },
+    "transport.http": {
+      "symbol": "znn.client.http.HttpClient"
+    },
+    "transport.websocket": {
+      "symbol": "znn.client.websocket.WsClient"
+    },
+    "wallet.derivation": {
+      "symbol": "znn.wallet.keystore.KeyStore"
+    },
+    "wallet.keyfile": {
+      "symbol": "znn.wallet.keyfile"
+    },
+    "wallet.keys": {
+      "symbol": "znn.wallet.keypair.KeyPair"
+    }
+  }
+}

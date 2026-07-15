@@ -53,7 +53,7 @@ class LedgerApi:
         )
 
     async def get_account_blocks_by_page(
-        self, address: str, page_index=1, page_size=RPC_MAX_PAGE_SIZE
+        self, address: str, page_index=0, page_size=RPC_MAX_PAGE_SIZE
     ):
         """Get list of account blocks for the account-chain of address by page.
 
@@ -75,7 +75,7 @@ class LedgerApi:
         """Get the momentum with the specified hash."""
         return await self.ws_client.send_request("ledger.getMomentumByHash", [hashstr])
 
-    async def get_momentums_by_page(self, page_index=1, page_size=RPC_MAX_PAGE_SIZE):
+    async def get_momentums_by_page(self, page_index=0, page_size=RPC_MAX_PAGE_SIZE):
         """Get list of momentums by page."""
         return await self.ws_client.send_request(
             "ledger.getMomentumsByPage", [page_index, page_size]
