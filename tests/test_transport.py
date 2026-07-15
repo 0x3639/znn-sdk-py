@@ -37,7 +37,7 @@ def test_transport_rejects_schemes_and_has_no_third_party_default():
 
 def test_offline_http_websocket_transcript():
     configured = os.environ.get("ZNN_SPEC_ROOT")
-    spec = Path(configured) if configured else Path(__file__).resolve().parents[2] / "znn-ts-sdk-spec"
+    spec = Path(configured) if configured else Path(__file__).resolve().parents[2] / "zenon-sdk-spec"
     if not spec.exists():
         pytest.skip("stable transport fixture is not available")
     sys.path.insert(0, str(spec / "tools"))
