@@ -33,7 +33,9 @@ def parse_rpc_response(method, value):
         raise TypeError(f"{method} returned a non-boolean result")
     if result_type == "array" and not isinstance(value, list):
         raise TypeError(f"{method} returned a non-array result")
-    if result_type == "subscription-id" and not isinstance(value, str):
+    if result_type == "subscription-id" and (
+        not isinstance(value, str) or not value
+    ):
         raise TypeError(f"{method} returned an invalid subscription ID")
     if result_type == "null":
         raise TypeError(f"{method} must return null")

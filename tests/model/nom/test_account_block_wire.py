@@ -53,3 +53,61 @@ def test_account_block_rejects_malformed_standard_base64(invalid):
     value["data"] = invalid
     with pytest.raises(ValueError, match="base64"):
         AccountBlock.from_json(value)
+
+
+def test_account_block_validation_and_nested_response_matrix():
+    value = AccountBlock().to_json()
+    with pytest.raises(TypeError, match="object"):
+        AccountBlock.from_json([])
+    incomplete = dict(value)
+    incomplete.pop("height")
+    with pytest.raises(ValueError, match="Missing required"):
+        AccountBlock.from_json(incomplete)
+
+    for field, invalid, message in [
+        ("height", True, "integer"),
+        ("height", -1, "unsigned"),
+        ("amount", "01", "canonical"),
+        ("nonce", "AA" * 8, "lowercase"),
+        ("nonce", "g" * 16, "hexadecimal"),
+    ]:
+        malformed = dict(value)
+        malformed[field] = invalid
+        with pytest.raises((TypeError, ValueError), match=message):
+            AccountBlock.from_json(malformed)
+
+    response = dict(value)
+    response.update({
+        "descendantBlocks": [],
+        "basePlasma": 1,
+        "usedPlasma": 2,
+        "changesHash": "0" * 64,
+        "pairedAccountBlock": dict(value),
+    })
+    block = AccountBlock.from_json(response, require_response=False)
+    assert isinstance(block._extra_fields["pairedAccountBlock"], AccountBlock)
+    assert block.to_json() == response
+
+    for field, invalid, message in [
+        ("descendantBlocks", {}, "array"),
+        ("basePlasma", True, "unsigned"),
+        ("changesHash", 1, "hash string"),
+        ("token", [], "object"),
+        ("confirmationDetail", [], "object"),
+        ("pairedAccountBlock", [], "object"),
+    ]:
+        malformed = dict(response)
+        malformed[field] = invalid
+        with pytest.raises((TypeError, ValueError), match=message):
+            AccountBlock.from_json(malformed)
+
+    receive = AccountBlock.receive(AccountBlock().hash)
+    assert receive.block_type == 3
+    invalid_nonce = AccountBlock()
+    invalid_nonce.nonce = b"short"
+    with pytest.raises(ValueError, match="nonce"):
+        invalid_nonce.get_hash()
+    invalid_amount = AccountBlock()
+    invalid_amount.amount = -1
+    with pytest.raises(ValueError, match="amount"):
+        invalid_amount.get_hash()

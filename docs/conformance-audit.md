@@ -9,7 +9,8 @@ All verification was deterministic and offline.
 
 | Surface | Baseline audit | Final result |
 |---|---:|---:|
-| Upstream/unit tests | 16/16 | 62/62 |
+| Upstream/unit tests | 16/16 | 77/77 |
+| Branch-enabled coverage | not enforced | 95.46% combined, enforced in CI |
 | Portable vectors | no complete adapter | 764/764 |
 | ABI boundary profile | 459/491 | 491/491 |
 | All ABI cases | 477/512 | 512/512 |
@@ -51,7 +52,10 @@ as a resubscribe response, and orphan notification buffers are bounded.
 
 ## Final validation
 
-- SDK pytest suite: 62 passed, including the live localhost transport checks.
+- SDK pytest suite: 77 passed, including the localhost transport checks.
+- Offline coverage across the complete `znn` package: 97.10% statements,
+  91.70% branches, and 95.46% branch-enabled combined coverage. CI enforces a
+  95.00% combined floor at two-decimal precision.
 - Exhaustive generated-model regression: all 305 removable required wire
   fields are rejected when absent.
 - Ruff fatal/static checks: passed.
@@ -97,6 +101,15 @@ subscription consumers when recovery is exhausted. Model parsing also accepts
 both padded and unpadded standard base64 as required, while continuing to reject
 malformed alphabets and padding. The literal one- and two-argument subscription
 call sites again make the stable source inventory report all 76 RPC methods.
+
+The final offline coverage audit exercises every RPC facade, scalar response
+route, SDK lifecycle path, legacy encoding compatibility layer, nested model
+helper, key-file validation class, transaction/provider failure mode, and
+WebSocket protocol-error family. It exposed and corrected three additional
+issues: empty typed subscription IDs, invalid exception construction in the
+legacy prefix helper, and process-global `eth_abi` registry mutation when the
+legacy registry module was imported. The compatibility registry now uses an
+isolated copy and cannot alter the main ABI codec.
 
 ## Legacy audit-tool limitations
 

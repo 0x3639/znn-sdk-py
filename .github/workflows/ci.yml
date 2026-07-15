@@ -21,9 +21,10 @@ jobs:
       - run: python -m pip install -e '.[dev]'
       - run: python -m compileall -q znn tests
       - run: ruff check --select E9,F63,F7,F82 znn tests
-      - run: python -m pytest -q
+      - run: python -m coverage run -m pytest -q
         env:
           ZNN_SPEC_ROOT: ${{ github.workspace }}/spec-kit
+      - run: python -m coverage report
       - run: python -m znn.conformance spec-kit/conformance/vectors --output znn-sdk-results.json
       - run: python spec-kit/tools/znn_spec.py check-results znn-sdk-results.json
       - run: python spec-kit/tools/znn_spec.py check-manifest conformance/manifest.json

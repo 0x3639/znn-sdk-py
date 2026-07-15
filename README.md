@@ -68,6 +68,18 @@ Run the unit suite:
 python3.12 -m pytest -q
 ```
 
+Measure the enforced offline branch coverage (the stable spec checkout supplies
+vectors and a localhost fixture, not a Zenon node):
+
+```bash
+ZNN_SPEC_ROOT=/path/to/zenon-sdk-spec \
+  python3.12 -m coverage run -m pytest -q
+python3.12 -m coverage report
+```
+
+CI requires at least 95% branch-enabled combined coverage across the complete
+`znn` package.
+
 Run all 764 stable vectors and validate the portable result document:
 
 ```bash

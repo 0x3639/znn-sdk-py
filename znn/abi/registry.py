@@ -1,4 +1,4 @@
-from eth_abi.registry import registry
+from eth_abi.registry import registry as default_registry
 from eth_abi.utils.padding import zpad
 
 from znn.model.primitives.address import Address
@@ -8,6 +8,10 @@ from znn.model.primitives.token_standard import TokenStandard
 DATA_BYTE_SIZE = 32
 ZTS_BYTE_SIZE = 20
 ADDRESS_BYTES_SIZE = 40
+
+# Compatibility encoders must not replace types in eth_abi's process-global
+# registry; importing this module should have no effect on the main ABI codec.
+registry = default_registry.copy()
 
 
 def encode_hash(value):

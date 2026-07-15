@@ -19,7 +19,7 @@ def to_ascii(s_bytes, prefix="", encoding="base64"):
 def remove_prefix(s_bytes, prefix):
     assert isinstance(s_bytes, str)
     if s_bytes[: len(prefix)] != prefix:
-        raise ("did not see expected '%s' prefix" % (prefix,))
+        raise ValueError("did not see expected '%s' prefix" % (prefix,))
     return s_bytes[len(prefix) :]
 
 
