@@ -284,6 +284,8 @@ class WsClient:
             self._pending.pop(request_id, None)
             if not future.done():
                 future.cancel()
+            elif not future.cancelled():
+                future.exception()
         if "error" in message:
             raise rpc_error(message["error"], method, params)
         return message.get("result")

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import threading
 from collections.abc import Awaitable, Callable
+from concurrent.futures import ThreadPoolExecutor
 
 from znn.api.embedded.plasma import PlasmaApi
 from znn.api.ledger import LedgerApi
@@ -29,12 +30,15 @@ class ReceiveValidationError(TransactionError):
 
 PowProvider = Callable[[str, int], str | Awaitable[str]]
 
-# At most this many built-in PoW searches run concurrently, no matter how many
-# transactions or event loops are active; a threading semaphore is used because
-# asyncio primitives cannot be shared across loops.
+# Built-in PoW runs on its own executor so CPU-bound searches can neither
+# exceed this many concurrent workers nor occupy the shared default executor
+# that transports and other asyncio.to_thread work depend on. Queued jobs wait
+# in the executor's queue without holding a thread.
 MAX_CONCURRENT_POW_WORKERS = 8
 
-_POW_SEMAPHORE = threading.BoundedSemaphore(MAX_CONCURRENT_POW_WORKERS)
+_POW_EXECUTOR = ThreadPoolExecutor(
+    max_workers=MAX_CONCURRENT_POW_WORKERS, thread_name_prefix="znn-pow"
+)
 
 
 class Transact:
@@ -73,18 +77,14 @@ class Transact:
             cancelled = threading.Event()
 
             def worker():
-                while not _POW_SEMAPHORE.acquire(timeout=0.05):
-                    if cancelled.is_set():
-                        return None
                 try:
                     return generate(data_hash, difficulty, None, cancelled.is_set)
                 except PowCancelledError:
                     return None
-                finally:
-                    _POW_SEMAPHORE.release()
 
+            loop = asyncio.get_running_loop()
             try:
-                return await asyncio.to_thread(worker)
+                return await loop.run_in_executor(_POW_EXECUTOR, worker)
             except asyncio.CancelledError:
                 cancelled.set()
                 raise

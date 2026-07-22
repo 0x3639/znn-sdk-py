@@ -189,10 +189,12 @@ def test_ws_cancellation_during_send_cleans_pending():
 def test_pow_worker_concurrency_is_capped(monkeypatch):
     import threading
     import time
+    from concurrent.futures import ThreadPoolExecutor
 
     import znn.wallet.transact as transact_module
 
-    monkeypatch.setattr(transact_module, "_POW_SEMAPHORE", threading.BoundedSemaphore(1))
+    executor = ThreadPoolExecutor(max_workers=1)
+    monkeypatch.setattr(transact_module, "_POW_EXECUTOR", executor)
 
     state = {"active": 0, "peak": 0}
     lock = threading.Lock()
@@ -217,6 +219,77 @@ def test_pow_worker_concurrency_is_capped(monkeypatch):
         assert state["peak"] == 1
 
     asyncio.run(asyncio.wait_for(scenario(), timeout=15))
+    executor.shutdown(wait=False)
+
+
+def test_queued_pow_does_not_starve_default_executor(monkeypatch):
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    import znn.wallet.transact as transact_module
+
+    executor = ThreadPoolExecutor(max_workers=1)
+    monkeypatch.setattr(transact_module, "_POW_EXECUTOR", executor)
+
+    def fake_generate(data_hash, difficulty, start_nonce=None, cancel=None):
+        time.sleep(0.3)
+        return "00" * 8
+
+    monkeypatch.setattr(transact_module, "generate", fake_generate)
+
+    async def scenario():
+        tx = Transact(PRIVATE_KEY)
+        pow_jobs = [
+            asyncio.ensure_future(tx._generate_nonce("aa" * 32, 5))
+            for _ in range(3)
+        ]
+        await asyncio.sleep(0.05)
+        started = asyncio.get_running_loop().time()
+        assert await asyncio.to_thread(lambda: "ok") == "ok"
+        assert asyncio.get_running_loop().time() - started < 0.5
+        assert await asyncio.gather(*pow_jobs) == ["00" * 8] * 3
+
+    asyncio.run(asyncio.wait_for(scenario(), timeout=15))
+    executor.shutdown(wait=False)
+
+
+def test_disconnect_during_blocked_send_retrieves_future_exception():
+    import gc
+
+    class BlockedThenFailingSocket:
+        def __init__(self):
+            self.release = asyncio.Event()
+
+        async def send(self, payload):
+            await self.release.wait()
+            raise RuntimeError("send failed")
+
+    async def scenario():
+        loop = asyncio.get_running_loop()
+        reports = []
+        loop.set_exception_handler(lambda _loop, context: reports.append(context))
+        client = WsClient("ws://localhost:1", request_timeout=None)
+
+        async def fake_connect():
+            return client
+
+        client.connect = fake_connect
+        socket = BlockedThenFailingSocket()
+        client._socket = socket
+        task = asyncio.ensure_future(
+            client.send_request("ledger.getFrontierMomentum", [])
+        )
+        await asyncio.sleep(0.05)
+        client._fail_pending(TransportError("disconnected"))
+        socket.release.set()
+        with pytest.raises(TransportError, match="send failed"):
+            await task
+        del task
+        gc.collect()
+        await asyncio.sleep(0)
+        assert reports == []
+
+    asyncio.run(asyncio.wait_for(scenario(), timeout=10))
 
 
 def test_account_block_rejects_private_keyword_arguments():
