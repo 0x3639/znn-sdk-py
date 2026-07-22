@@ -58,7 +58,7 @@ class WsClient:
         reconnect_interval=1.0,
         maximum_attempts=0,
         connect_timeout=30.0,
-        request_timeout=None,
+        request_timeout=30.0,
     ):
         if url is not None and urlparse(url).scheme not in {"ws", "wss"}:
             raise ValueError("WebSocket client URL must use ws or wss")
@@ -254,22 +254,27 @@ class WsClient:
     async def send_request(self, method: str, params: list):
         await self.connect()
         request_id = next(self._ids)
-        future = asyncio.get_running_loop().create_future()
-        self._pending[request_id] = future
         try:
-            await self._socket.send(
-                json.dumps(build_request(request_id, method, params), separators=(",", ":"))
+            payload = json.dumps(
+                build_request(request_id, method, params), separators=(",", ":")
             )
         except Exception as error:
-            self._pending.pop(request_id, None)
-            if not future.done():
-                future.cancel()
             raise TransportError(f"WebSocket send failed: {error}") from error
+        future = asyncio.get_running_loop().create_future()
+        self._pending[request_id] = future
+
+        async def send_and_wait():
+            try:
+                await self._socket.send(payload)
+            except Exception as error:
+                raise TransportError(f"WebSocket send failed: {error}") from error
+            return await future
+
         try:
             if self.request_timeout is None:
-                message = await future
+                message = await send_and_wait()
             else:
-                message = await asyncio.wait_for(future, self.request_timeout)
+                message = await asyncio.wait_for(send_and_wait(), self.request_timeout)
         except asyncio.TimeoutError as error:
             raise TransportError(
                 f"JSON-RPC request {method!r} timed out after "
@@ -277,6 +282,8 @@ class WsClient:
             ) from error
         finally:
             self._pending.pop(request_id, None)
+            if not future.done():
+                future.cancel()
         if "error" in message:
             raise rpc_error(message["error"], method, params)
         return message.get("result")

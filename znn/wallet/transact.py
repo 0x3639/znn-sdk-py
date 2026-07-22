@@ -29,6 +29,13 @@ class ReceiveValidationError(TransactionError):
 
 PowProvider = Callable[[str, int], str | Awaitable[str]]
 
+# At most this many built-in PoW searches run concurrently, no matter how many
+# transactions or event loops are active; a threading semaphore is used because
+# asyncio primitives cannot be shared across loops.
+MAX_CONCURRENT_POW_WORKERS = 8
+
+_POW_SEMAPHORE = threading.BoundedSemaphore(MAX_CONCURRENT_POW_WORKERS)
+
 
 class Transact:
     def __init__(
@@ -66,10 +73,15 @@ class Transact:
             cancelled = threading.Event()
 
             def worker():
+                while not _POW_SEMAPHORE.acquire(timeout=0.05):
+                    if cancelled.is_set():
+                        return None
                 try:
                     return generate(data_hash, difficulty, None, cancelled.is_set)
                 except PowCancelledError:
                     return None
+                finally:
+                    _POW_SEMAPHORE.release()
 
             try:
                 return await asyncio.to_thread(worker)

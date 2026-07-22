@@ -118,6 +118,122 @@ def test_subscription_termination_without_recorded_error():
     asyncio.run(scenario())
 
 
+def test_ws_request_timeout_defaults_to_finite():
+    assert WsClient("ws://localhost:1").request_timeout == 30.0
+
+
+def test_zenon_initialize_wires_request_timeout(monkeypatch):
+    from znn.sdk import Zenon
+
+    async def fake_connect(self):
+        return self
+
+    monkeypatch.setattr(WsClient, "connect", fake_connect)
+
+    async def scenario():
+        sdk = Zenon()
+        await sdk.initialize("wss://node.example", timeout=7)
+        assert sdk.client.request_timeout == 7
+        sdk = Zenon()
+        await sdk.initialize("wss://node.example", timeout=7, request_timeout=3)
+        assert sdk.client.request_timeout == 3
+
+    asyncio.run(scenario())
+
+
+def test_ws_request_timeout_covers_blocked_send():
+    class StalledSocket:
+        async def send(self, payload):
+            await asyncio.sleep(3600)
+
+    async def scenario():
+        client = WsClient("ws://localhost:1", request_timeout=0.05)
+
+        async def fake_connect():
+            return client
+
+        client.connect = fake_connect
+        client._socket = StalledSocket()
+        with pytest.raises(TransportError, match="timed out"):
+            await client.send_request("ledger.getFrontierMomentum", [])
+        assert client._pending == {}
+
+    asyncio.run(asyncio.wait_for(scenario(), timeout=10))
+
+
+def test_ws_cancellation_during_send_cleans_pending():
+    class StalledSocket:
+        async def send(self, payload):
+            await asyncio.sleep(3600)
+
+    async def scenario():
+        client = WsClient("ws://localhost:1", request_timeout=None)
+
+        async def fake_connect():
+            return client
+
+        client.connect = fake_connect
+        client._socket = StalledSocket()
+        task = asyncio.ensure_future(
+            client.send_request("ledger.getFrontierMomentum", [])
+        )
+        await asyncio.sleep(0.05)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert client._pending == {}
+
+    asyncio.run(asyncio.wait_for(scenario(), timeout=10))
+
+
+def test_pow_worker_concurrency_is_capped(monkeypatch):
+    import threading
+    import time
+
+    import znn.wallet.transact as transact_module
+
+    monkeypatch.setattr(transact_module, "_POW_SEMAPHORE", threading.BoundedSemaphore(1))
+
+    state = {"active": 0, "peak": 0}
+    lock = threading.Lock()
+
+    def fake_generate(data_hash, difficulty, start_nonce=None, cancel=None):
+        with lock:
+            state["active"] += 1
+            state["peak"] = max(state["peak"], state["active"])
+        time.sleep(0.05)
+        with lock:
+            state["active"] -= 1
+        return "00" * 8
+
+    monkeypatch.setattr(transact_module, "generate", fake_generate)
+
+    async def scenario():
+        tx = Transact(PRIVATE_KEY)
+        nonces = await asyncio.gather(
+            *(tx._generate_nonce("aa" * 32, 5) for _ in range(3))
+        )
+        assert nonces == ["00" * 8] * 3
+        assert state["peak"] == 1
+
+    asyncio.run(asyncio.wait_for(scenario(), timeout=15))
+
+
+def test_account_block_rejects_private_keyword_arguments():
+    with pytest.raises(TypeError, match="unexpected"):
+        AccountBlock(_extra_fields={"amount": "attacker-value"})
+    with pytest.raises(TypeError, match="unexpected"):
+        AccountBlock(_momentum_was_empty=True)
+
+
+def test_account_block_from_json_still_carries_response_extras():
+    block = AccountBlock.from_json(
+        {"momentumAcknowledged": {}, "basePlasma": 21}, strict=False
+    )
+    assert block._extra_fields["basePlasma"] == 21
+    assert block.to_json()["momentumAcknowledged"] == {}
+
+
 def test_ws_request_timeout_validation():
     with pytest.raises(ValueError):
         WsClient("ws://localhost:1", request_timeout=0)
