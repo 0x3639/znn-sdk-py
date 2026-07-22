@@ -8,6 +8,6 @@ Keep it in sync with znn/__init__.py.
 
 from setuptools import setup
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 
 setup()
