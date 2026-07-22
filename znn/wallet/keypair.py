@@ -24,6 +24,16 @@ def verify_signature(
 
 
 class KeyPair:
+    """Ed25519 signing key pair.
+
+    CPython cannot guarantee erasure of key material: the private key is held
+    in immutable ``str``/``bytes`` objects (including inside PyNaCl), and
+    copies may persist in interpreter memory until garbage collection, or in
+    allocator arenas afterwards. :meth:`clear` drops references on a
+    best-effort basis only. Use an external signer or PoW/signing hardware if
+    guaranteed zeroization is required.
+    """
+
     def __init__(self, private_key: str | bytes):
         private_key_hex = private_key.hex() if isinstance(private_key, bytes) else private_key
         if len(bytes.fromhex(private_key_hex)) != 32:
@@ -68,6 +78,7 @@ class KeyPair:
         return signature
 
     def clear(self) -> None:
+        """Drop key references. Best-effort only; see the class docstring."""
         self.private_key = ""
         self.signing_key = None
         self.public_key = ""

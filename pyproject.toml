@@ -52,3 +52,6 @@ version = { attr = "znn.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["znn*"]
+
+[tool.setuptools.package-data]
+znn = ["py.typed"]

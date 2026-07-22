@@ -33,6 +33,12 @@ class AccountBlock:
         self.public_key = b""
         self.signature = b""
         self._extra_fields = {}
+        allowed = set(self.__dict__) | {"_momentum_was_empty"}
+        unknown = set(kwargs) - allowed
+        if unknown:
+            raise TypeError(
+                f"AccountBlock got unexpected keyword arguments: {sorted(unknown)}"
+            )
         self.__dict__.update(kwargs)
 
     @staticmethod
