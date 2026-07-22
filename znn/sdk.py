@@ -28,6 +28,7 @@ class Zenon:
         if scheme in {"http", "https"}:
             self.client = HttpClient(server_url, timeout)
         elif scheme in {"ws", "wss"}:
+            websocket_options.setdefault("request_timeout", timeout)
             self.client = WsClient(
                 server_url, connect_timeout=timeout, **websocket_options
             )

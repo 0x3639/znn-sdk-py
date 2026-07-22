@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from itertools import count
 from urllib.parse import urlparse
 
@@ -14,6 +15,8 @@ from znn.client.protocol import (
     build_request, normalize_notification, rpc_error, subscription_params,
 )
 
+
+logger = logging.getLogger(__name__)
 
 _SUBSCRIPTION_TERMINATED = object()
 
@@ -32,7 +35,10 @@ class Subscription:
             raise self._terminal_error
         update = await self.queue.get()
         if update is _SUBSCRIPTION_TERMINATED:
-            raise self._terminal_error
+            error = self._terminal_error
+            raise error if error is not None else TransportError(
+                "Subscription terminated"
+            )
         return update
 
     def _fail(self, error):
@@ -52,6 +58,7 @@ class WsClient:
         reconnect_interval=1.0,
         maximum_attempts=0,
         connect_timeout=30.0,
+        request_timeout=30.0,
     ):
         if url is not None and urlparse(url).scheme not in {"ws", "wss"}:
             raise ValueError("WebSocket client URL must use ws or wss")
@@ -75,6 +82,13 @@ class WsClient:
             or connect_timeout <= 0
         ):
             raise ValueError("connect_timeout must be positive")
+        if request_timeout is not None and (
+            not isinstance(request_timeout, (int, float))
+            or isinstance(request_timeout, bool)
+            or request_timeout <= 0
+        ):
+            raise ValueError("request_timeout must be positive or None")
+        self.request_timeout = request_timeout
         self.url = url
         self.reconnect = reconnect
         self.reconnect_interval = reconnect_interval
@@ -168,6 +182,7 @@ class WsClient:
         if self._recovery_task is not None and not self._recovery_task.done():
             self._queued_recovery = (cause, socket)
             return self._recovery_task
+        logger.warning("WebSocket connection lost (%s); starting recovery", cause)
         self._recovery_task = asyncio.create_task(self._recover(cause))
         self._recovery_task.add_done_callback(self._recovery_finished)
         return self._recovery_task
@@ -202,6 +217,7 @@ class WsClient:
         while not self._closed and (self.maximum_attempts == 0 or attempts < self.maximum_attempts):
             attempts += 1
             attempt_socket = None
+            logger.info("WebSocket reconnect attempt %d", attempts)
             try:
                 await asyncio.sleep(self.reconnect_interval)
                 if self._closed:
@@ -229,6 +245,7 @@ class WsClient:
                 self._subscriptions.clear()
                 await self._discard_socket(failed_socket)
         if not self._closed:
+            logger.warning("WebSocket recovery failed: %s", last_error)
             failure = TransportError(f"WebSocket recovery failed: {last_error}")
             self._fail_pending(failure)
             self._fail_subscriptions(failure, subscriptions)
@@ -237,21 +254,38 @@ class WsClient:
     async def send_request(self, method: str, params: list):
         await self.connect()
         request_id = next(self._ids)
-        future = asyncio.get_running_loop().create_future()
-        self._pending[request_id] = future
         try:
-            await self._socket.send(
-                json.dumps(build_request(request_id, method, params), separators=(",", ":"))
+            payload = json.dumps(
+                build_request(request_id, method, params), separators=(",", ":")
             )
         except Exception as error:
+            raise TransportError(f"WebSocket send failed: {error}") from error
+        future = asyncio.get_running_loop().create_future()
+        self._pending[request_id] = future
+
+        async def send_and_wait():
+            try:
+                await self._socket.send(payload)
+            except Exception as error:
+                raise TransportError(f"WebSocket send failed: {error}") from error
+            return await future
+
+        try:
+            if self.request_timeout is None:
+                message = await send_and_wait()
+            else:
+                message = await asyncio.wait_for(send_and_wait(), self.request_timeout)
+        except asyncio.TimeoutError as error:
+            raise TransportError(
+                f"JSON-RPC request {method!r} timed out after "
+                f"{self.request_timeout} seconds"
+            ) from error
+        finally:
             self._pending.pop(request_id, None)
             if not future.done():
                 future.cancel()
-            raise TransportError(f"WebSocket send failed: {error}") from error
-        try:
-            message = await future
-        finally:
-            self._pending.pop(request_id, None)
+            elif not future.cancelled():
+                future.exception()
         if "error" in message:
             raise rpc_error(message["error"], method, params)
         return message.get("result")

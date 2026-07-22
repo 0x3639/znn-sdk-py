@@ -5,6 +5,17 @@ from __future__ import annotations
 import hashlib
 import secrets
 
+# go-zenon caps account-block PoW plasma at 94,500 with 1,500 difficulty per
+# plasma unit, so no valid block ever requires more than this difficulty. A
+# node demanding more is malicious or broken.
+MAX_POW_DIFFICULTY = 94_500 * 1_500
+
+_CANCEL_CHECK_INTERVAL = 10_000
+
+
+class PowCancelledError(RuntimeError):
+    """PoW generation was cancelled before a valid nonce was found."""
+
 
 def _validate(hash_hex: str, difficulty: int, nonce_hex: str | None = None) -> bytes:
     if (
@@ -51,8 +62,28 @@ def verify(hash_hex: str, difficulty: int, nonce_hex: str) -> bool:
     return int.from_bytes(digest[:8], "little") >= threshold
 
 
-def generate(hash_hex: str, difficulty: int, start_nonce: bytes | None = None) -> str:
+def generate(
+    hash_hex: str,
+    difficulty: int,
+    start_nonce: bytes | None = None,
+    cancel=None,
+) -> str:
+    """Search for a valid nonce.
+
+    Unless ``start_nonce`` is given, the search starts from a random nonce
+    rather than zero as the Go reference does; both produce valid nonces, the
+    random start just parallelizes better. ``cancel`` is an optional zero-arg
+    callable polled every 10,000 iterations; returning true aborts the search
+    with :class:`PowCancelledError`.
+    """
     _validate(hash_hex, difficulty)
+    if difficulty > MAX_POW_DIFFICULTY:
+        raise ValueError(
+            "PoW difficulty exceeds the protocol maximum of "
+            f"{MAX_POW_DIFFICULTY}"
+        )
+    if cancel is not None and not callable(cancel):
+        raise TypeError("PoW cancel must be a zero-argument callable")
     if difficulty == 0:
         return "0000000000000000"
     if start_nonce is not None and not isinstance(
@@ -63,11 +94,19 @@ def generate(hash_hex: str, difficulty: int, start_nonce: bytes | None = None) -
     if len(nonce) != 8:
         raise ValueError("PoW starting nonce must be exactly 8 bytes")
     value = int.from_bytes(nonce, "little")
+    iterations = 0
     while True:
+        if (
+            cancel is not None
+            and iterations % _CANCEL_CHECK_INTERVAL == 0
+            and cancel()
+        ):
+            raise PowCancelledError("PoW generation was cancelled")
         candidate = value.to_bytes(8, "little").hex()
         if verify(hash_hex, difficulty, candidate):
             return candidate
         value = (value + 1) & ((1 << 64) - 1)
+        iterations += 1
 
 
 def account_block_data_hash(address: bytes, previous_hash: bytes) -> str:

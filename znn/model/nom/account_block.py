@@ -33,6 +33,12 @@ class AccountBlock:
         self.public_key = b""
         self.signature = b""
         self._extra_fields = {}
+        allowed = {name for name in self.__dict__ if not name.startswith("_")}
+        unknown = set(kwargs) - allowed
+        if unknown:
+            raise TypeError(
+                f"AccountBlock got unexpected keyword arguments: {sorted(unknown)}"
+            )
         self.__dict__.update(kwargs)
 
     @staticmethod
@@ -109,12 +115,10 @@ class AccountBlock:
             "nonce": nonce,
             "public_key": binary("publicKey"),
             "signature": binary("signature"),
-            "_momentum_was_empty": not bool(json_data.get("momentumAcknowledged")),
-            "_extra_fields": {
-                key: value for key, value in json_data.items() if key not in known_keys
-            },
         }
-        extras = kwargs["_extra_fields"]
+        extras = {
+            key: value for key, value in json_data.items() if key not in known_keys
+        }
         if "descendantBlocks" in extras and not isinstance(extras["descendantBlocks"], list):
             raise TypeError("Account-block descendantBlocks must be an array")
         if isinstance(extras.get("descendantBlocks"), list):
@@ -154,7 +158,10 @@ class AccountBlock:
             extras["confirmationDetail"] = AccountBlockConfirmationDetail.from_json(
                 extras["confirmationDetail"], strict=strict
             )
-        return AccountBlock(**kwargs)
+        block = AccountBlock(**kwargs)
+        block._momentum_was_empty = not bool(json_data.get("momentumAcknowledged"))
+        block._extra_fields = extras
+        return block
 
     def to_json(self):
         nonce = self.nonce.hex() if isinstance(self.nonce, bytes) else self.nonce

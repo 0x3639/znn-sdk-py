@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 from collections.abc import Awaitable, Callable
+from concurrent.futures import ThreadPoolExecutor
 
 from znn.api.embedded.plasma import PlasmaApi
 from znn.api.ledger import LedgerApi
@@ -12,7 +14,9 @@ from znn.model.primitives.address import Address
 from znn.model.primitives.hash import EMPTY_HASH, Hash
 from znn.model.primitives.hash_height import HashHeight
 from znn.model.primitives.token_standard import TokenStandard
-from znn.pow import account_block_data_hash, generate, verify
+from znn.pow import (
+    MAX_POW_DIFFICULTY, PowCancelledError, account_block_data_hash, generate, verify,
+)
 from znn.wallet.keypair import KeyPair
 
 
@@ -25,6 +29,16 @@ class ReceiveValidationError(TransactionError):
 
 
 PowProvider = Callable[[str, int], str | Awaitable[str]]
+
+# Built-in PoW runs on its own executor so CPU-bound searches can neither
+# exceed this many concurrent workers nor occupy the shared default executor
+# that transports and other asyncio.to_thread work depend on. Queued jobs wait
+# in the executor's queue without holding a thread.
+MAX_CONCURRENT_POW_WORKERS = 8
+
+_POW_EXECUTOR = ThreadPoolExecutor(
+    max_workers=MAX_CONCURRENT_POW_WORKERS, thread_name_prefix="znn-pow"
+)
 
 
 class Transact:
@@ -60,7 +74,20 @@ class Transact:
 
     async def _generate_nonce(self, data_hash: str, difficulty: int) -> str:
         if self.pow_provider is None:
-            return await asyncio.to_thread(generate, data_hash, difficulty)
+            cancelled = threading.Event()
+
+            def worker():
+                try:
+                    return generate(data_hash, difficulty, None, cancelled.is_set)
+                except PowCancelledError:
+                    return None
+
+            loop = asyncio.get_running_loop()
+            try:
+                return await loop.run_in_executor(_POW_EXECUTOR, worker)
+            except asyncio.CancelledError:
+                cancelled.set()
+                raise
         result = self.pow_provider(data_hash, difficulty)
         if hasattr(result, "__await__"):
             return await result  # type: ignore[misc]
@@ -109,6 +136,10 @@ class Transact:
             or not 0 <= required_difficulty <= (1 << 64) - 1
         ):
             raise TransactionError("Node returned an invalid required PoW difficulty")
+        if required_difficulty > MAX_POW_DIFFICULTY:
+            raise TransactionError(
+                "Node returned a required PoW difficulty above the protocol maximum"
+            )
         if required_difficulty == 0:
             account_block.difficulty = 0
             account_block.nonce = bytes(8)

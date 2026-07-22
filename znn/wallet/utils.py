@@ -2,7 +2,8 @@ import base64
 
 
 def to_ascii(s_bytes, prefix="", encoding="base64"):
-    assert isinstance(s_bytes, bytes)
+    if not isinstance(s_bytes, bytes):
+        raise TypeError("to_ascii requires a bytes value")
     if not isinstance(prefix, bytes):
         prefix = prefix.encode("ascii")
     if encoding == "base64":
@@ -17,7 +18,8 @@ def to_ascii(s_bytes, prefix="", encoding="base64"):
 
 
 def remove_prefix(s_bytes, prefix):
-    assert isinstance(s_bytes, str)
+    if not isinstance(s_bytes, str):
+        raise TypeError("remove_prefix requires a str value")
     if s_bytes[: len(prefix)] != prefix:
         raise ValueError("did not see expected '%s' prefix" % (prefix,))
     return s_bytes[len(prefix) :]

@@ -46,6 +46,11 @@ class KeyStore:
         return KeyStore(mnemonic, passphrase)
 
     def clear(self) -> None:
+        """Drop mnemonic/seed references.
+
+        Best-effort only: the original immutable strings remain in interpreter
+        memory until garbage collected. See ``KeyPair`` for details.
+        """
         self.mnemonic = ""
         self.seed = ""
         self.entropy = ""

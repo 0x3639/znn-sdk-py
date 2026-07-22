@@ -499,7 +499,9 @@ def test_sdk_lifecycle_and_delegation_without_network(monkeypatch):
         monkeypatch.setattr("znn.sdk.WsClient", FakeWs)
         await sdk.initialize("ws://example.test", timeout=3, reconnect=False)
         websocket = sdk.client
-        assert websocket.connected and websocket.options == {"reconnect": False}
+        assert websocket.connected and websocket.options == {
+            "reconnect": False, "request_timeout": 3,
+        }
         await sdk.disconnect()
         assert websocket.disconnected
 
